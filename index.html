@@ -348,7 +348,7 @@
      before each print, so the same sheet can go out landscape (computer /
      printer copies) or portrait (phone-sized single column). -->
 <style id="pageSetupStyle">
-  @page { size: letter landscape; margin: 0; }
+  @page { size: letter landscape; margin: 0.15in; }
 </style>
 </head>
 <body>
@@ -874,7 +874,7 @@ function clearLogo(){ state.church.logo = ""; showLogoPreview(); render(); autos
    6. ACTIONS
    ============================================================ */
 const PAGE_SETUP = {
-  full:  "@page { size: letter landscape; margin: 0; }",   // full-bleed landscape letter — fits the 3-column layout edge to edge
+  full:  "@page { size: letter landscape; margin: 0.15in; }",   // landscape letter, near-edge-to-edge — a hair of margin so real printers (and some browsers' PDF export) don't clip content that hits a literal 0
   phone: "@page { size: letter portrait; margin: 0.45in; }" // portrait — matches the single-column phone layout
 };
 function printMode(mode){
