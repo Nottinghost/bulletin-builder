@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nottingham Baptist — Bulletin Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ============================================================
+     THEME — change fonts, colors, or the logo here and the whole
+     bulletin follows. Nothing else in this file should need
+     touching for a "make the accent green" kind of request.
+     ============================================================ */
+  :root {
+    --font-display: 'Playfair Display', Georgia, serif;             /* church name, dates, sermon titles, headings */
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;      /* everything else */
+
+    --navy: #1B3A6B;        /* primary brand color — header, sidebar, dark cards */
+    --navy-mid: #2C5282;    /* secondary accent — subheads, times */
+    --gold: #B8975A;        /* accent color — rule, date badge, card borders */
+    --gold-soft: #D4AE72;   /* lighter partner for the gold rule's gradient */
+    --ink: #22303F;         /* body text */
+    --muted: #5A6B7E;       /* secondary / label text */
+    --line: #D9E0EA;        /* hairline borders */
+    --panel: #F1F4F9;       /* editor panel backgrounds */
+    --white: #FFFFFF;
+    --edit-bg: #EEF2F7;     /* page background behind the editor/preview */
+  }
+
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font-body);
+    color: var(--ink);
+    background: var(--edit-bg);
+    line-height: 1.5;
+  }
+
+  /* ============================================================
+     APP SHELL — editor on the left, live preview on the right.
+     Everything with class "editor" disappears when printing.
+     ============================================================ */
+  .app {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    height: 100vh;
+  }
+
+  /* ---------- EDITOR PANE ---------- */
+  .editor {
+    background: var(--white);
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    padding: 0 0 60px;
+  }
+  .editor-head {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--navy);
+    color: var(--white);
+    padding: 16px 20px;
+    box-shadow: 0 2px 10px rgba(27,58,107,.18);
+  }
+  .editor-head h1 {
+    font-family: var(--font-display);
+    font-size: 17px; font-weight: 600; letter-spacing: .01em;
+  }
+  .editor-head p { font-size: 11.5px; color: #C9D6EA; margin-top: 3px; line-height: 1.45; }
+
+  .toolbar {
+    position: sticky; top: 79px; z-index: 4;
+    display: flex; gap: 8px; flex-wrap: wrap;
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .btn {
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
+    border: 1px solid var(--line); background: var(--white); color: var(--ink);
+    padding: 8px 12px; border-radius: 7px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background .12s, border-color .12s, transform .05s;
+  }
+  .btn:hover { background: #F7F9FC; border-color: #C3CEDD; }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .btn.primary:hover { background: #16305A; }
+  .btn.gold { background: var(--gold); color: #fff; border-color: var(--gold); }
+  .btn.gold:hover { background: #A9884B; }
+  .btn.small { padding: 5px 9px; font-size: 11.5px; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  .btn.ghost:hover { color: #B23B3B; background: #FBEDED; }
+
+  .save-note {
+    font-size: 11px; color: var(--muted);
+    padding: 6px 20px 2px; min-height: 22px;
+  }
+  .save-note.ok { color: #2F7D46; }
+  .save-note.warn { color: #B26A1F; }
+
+  details.group {
+    border-bottom: 1px solid var(--line);
+  }
+  details.group > summary {
+    list-style: none; cursor: pointer;
+    padding: 13px 20px; font-weight: 600; font-size: 13px;
+    color: var(--navy); display: flex; align-items: center; gap: 8px;
+    user-select: none;
+  }
+  details.group > summary::-webkit-details-marker { display: none; }
+  details.group > summary::before {
+    content: "▸"; color: var(--gold); font-size: 11px; transition: transform .15s;
+  }
+  details.group[open] > summary::before { transform: rotate(90deg); }
+  details.group > summary .hint { font-weight: 400; font-size: 11px; color: var(--muted); margin-left: auto; }
+  .group-body { padding: 4px 20px 18px; }
+
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .field input, .field textarea {
+    width: 100%; font-family: inherit; font-size: 13px; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 6px; padding: 8px 9px;
+    background: #FCFDFE;
+  }
+  .field input:focus, .field textarea:focus {
+    outline: none; border-color: var(--navy-mid); box-shadow: 0 0 0 3px rgba(44,82,130,.12);
+  }
+  .field textarea { resize: vertical; min-height: 44px; }
+  .field .sub { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 70px 90px 1fr; gap: 8px; align-items: start; }
+
+  /* repeatable list items in the editor */
+  .list-item {
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px; margin-bottom: 10px; background: #FBFCFE;
+    position: relative;
+  }
+  .list-item .remove {
+    position: absolute; top: 7px; right: 7px;
+  }
+  .list-item + .add-row { margin-top: 2px; }
+  .add-row { margin-top: 4px; }
+
+  .card-style-toggle { display: flex; gap: 6px; margin-top: 6px; }
+  .card-style-toggle label {
+    flex: 1; text-align: center; font-size: 11px; font-weight: 600;
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 4px; cursor: pointer;
+    color: var(--muted); background: #fff; text-transform: none; letter-spacing: 0;
+  }
+  .card-style-toggle input { display: none; }
+  .card-style-toggle input:checked + span { }
+  .card-style-toggle label:has(input:checked) { border-color: var(--navy); color: var(--navy); background: #EEF3FA; }
+
+  .logo-preview {
+    display: flex; align-items: center; gap: 10px; margin-top: 6px;
+  }
+  .logo-preview img { height: 40px; width: auto; background: var(--navy); padding: 4px; border-radius: 4px; }
+
+  /* ---------- PREVIEW PANE ---------- */
+  .preview {
+    overflow: auto; padding: 28px; display: flex; justify-content: center; align-items: flex-start;
+  }
+  .preview-inner { }
+
+  /* ============================================================
+     THE BULLETIN — this is what actually prints.
+     Sized to fill one landscape Letter sheet.
+     ============================================================ */
+  .bulletin {
+    width: 1040px;
+    background: var(--white);
+    box-shadow: 0 10px 40px rgba(27,58,107,.14);
+    color: var(--ink);
+  }
+  /* Force the navy/gold backgrounds to always render when printing or saving to PDF */
+  .bulletin, .bulletin * { -webkit-print-color-adjust: exact; print-color-adjust: exact; overflow-wrap: break-word; }
+
+  .b-header {
+    background: var(--navy);
+    color: #fff;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 26px;
+    padding: 18px 34px;
+  }
+  .b-headmain { min-width: 0; }
+  .b-church {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 33px; letter-spacing: .01em; line-height: 1.05;
+  }
+  .b-tagline {
+    font-size: 10px; letter-spacing: .15em; text-transform: uppercase;
+    color: #BFD0E8; margin-top: 7px; font-weight: 500;
+  }
+  .b-pastor { font-size: 12px; color: rgba(255,255,255,.8); margin-top: 6px; }
+  .b-headrow { display: flex; align-items: center; gap: 14px; margin-top: 11px; flex-wrap: wrap; }
+  .b-date {
+    font-family: var(--font-display); font-size: 18px; font-weight: 600;
+    background: var(--gold); color: #fff; padding: 4px 13px; border-radius: 4px;
+    display: inline-block;
+  }
+  .b-contact { font-size: 10.5px; color: rgba(255,255,255,.72); line-height: 1.5; }
+  .b-logo { display:flex; align-items:center; justify-content:flex-end; }
+  .b-logo img { height: 84px; width: auto; object-fit: contain; }
+
+  .b-rule { height: 4px; background: linear-gradient(90deg, var(--gold), var(--gold-soft) 50%, var(--gold)); }
+
+  .b-body {
+    display: grid;
+    grid-template-columns: 218px 1fr 236px;
+  }
+
+  /* left column — the fixed weekly rhythm of the church */
+  .b-left { background: var(--navy); color: #fff; padding: 18px 18px; }
+  .b-left .sec { margin-bottom: 15px; }
+  .b-left .sec:last-child { margin-bottom: 0; }
+  .b-left .lbl {
+    font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--gold); border-bottom: 1px solid rgba(255,255,255,.16);
+    padding-bottom: 5px; margin-bottom: 9px;
+  }
+  .b-svc { margin-bottom: 8px; }
+  .b-svc .name { font-size: 12.5px; font-weight: 600; }
+  .b-svc .time { font-size: 12px; color: #A9C4EA; }
+  .b-left .note { font-size: 11px; color: rgba(255,255,255,.82); line-height: 1.55; }
+  .b-left .note em { color: #CFE0F5; font-style: italic; }
+
+  /* center column — worship + week */
+  .b-main { padding: 18px 24px; border-right: 1px solid var(--line); }
+  .b-service { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); page-break-inside: avoid; }
+  .b-service:last-of-type { border-bottom: none; }
+  .b-service h2 {
+    font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--navy);
+    padding-bottom: 6px; margin-bottom: 9px; border-bottom: 2px solid #E4EBF4;
+  }
+  .b-line { font-size: 13px; margin-bottom: 3px; }
+  .b-line .k { font-weight: 600; color: var(--navy-mid); }
+  .b-sermon {
+    font-family: var(--font-display); font-style: italic; font-size: 16px;
+    color: var(--navy); margin: 8px 0 2px; padding-left: 12px; border-left: 3px solid var(--gold);
+  }
+  .b-sermon-sub { font-size: 12.5px; color: var(--muted); padding-left: 15px; }
+
+  .b-week-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .b-week h3 {
+    font-family: var(--font-display); font-size: 15px; color: var(--navy);
+    margin-bottom: 8px; padding-bottom: 5px; border-bottom: 2px solid #E4EBF4;
+  }
+  .b-wk-row { display: flex; gap: 8px; font-size: 12.5px; margin-bottom: 5px; align-items: baseline; }
+  .b-wk-row .d { font-weight: 700; color: var(--navy-mid); min-width: 46px; flex-shrink: 0; }
+  .b-wk-row .t { color: var(--gold); min-width: 56px; flex-shrink: 0; }
+  .b-wk-row .x { flex: 1; }
+
+  /* right column — people + announcements */
+  .b-right { padding: 16px 16px; background: #F8FAFD; }
+  .b-right .sec { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); page-break-inside: avoid; }
+  .b-right .sec:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .b-right .lbl {
+    font-size: 10px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--navy); margin-bottom: 7px;
+  }
+  .b-right .txt { font-size: 12px; color: var(--ink); line-height: 1.55; }
+  .b-right .txt .accent { color: var(--gold); font-weight: 600; }
+  .b-people-item { font-size: 12px; margin-bottom: 2px; }
+  .b-people-item .when { color: var(--navy-mid); font-weight: 600; }
+  .b-nursery { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font-size: 11.5px; }
+  .b-nursery .t { color: var(--gold); font-weight: 600; white-space: nowrap; }
+
+  .b-card { border-radius: 8px; padding: 10px 12px; margin-bottom: 9px; page-break-inside: avoid; }
+  .b-card:last-child { margin-bottom: 0; }
+  .b-card.navy { background: var(--navy); color: #fff; }
+  .b-card.navy .c-title { color: #fff; }
+  .b-card.navy .c-meta { color: var(--gold-soft); }
+  .b-card.navy .c-body { color: rgba(255,255,255,.85); }
+  .b-card.light { background: #EAF0F8; border-left: 3px solid var(--gold); }
+  .b-card.light .c-title { color: var(--navy); }
+  .b-card.light .c-meta { color: var(--navy-mid); }
+  .b-card.light .c-body { color: var(--ink); }
+  .c-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  .c-meta { font-size: 11.5px; font-weight: 600; margin-bottom: 5px; }
+  .c-body { font-size: 11.5px; line-height: 1.5; }
+
+  .b-visitor {
+    background: var(--navy-mid); color: rgba(255,255,255,.85);
+    font-size: 11px; text-align: center; padding: 9px 30px; letter-spacing: .02em;
+  }
+  .b-visitor strong { color: #fff; }
+
+  .empty-hint { color: #9AA7B6; font-style: italic; font-size: 11px; }
+
+  /* ============================================================
+     PRINT — the sheet only. Everything else vanishes.
+     @page sizing is set dynamically by printMode() in the script
+     below (landscape 3-column for computers/printers, or portrait
+     single-column for phones) via the #pageSetupStyle tag in <head>.
+     ============================================================ */
+  @media print {
+    body { background: #fff; }
+    .app { display: block; height: auto; }
+    .editor, .toolbar, .editor-head { display: none !important; }
+    .preview { display: block; padding: 0; overflow: visible; }
+    .bulletin { width: 100%; box-shadow: none; }
+    .empty-hint { display: none; }
+
+    /* ---- phone layout: everything in one column, reordered so the
+       week's news reads before the fixed weekly-rhythm info ---- */
+    body[data-print-mode="phone"] .b-body { grid-template-columns: 1fr; }
+    body[data-print-mode="phone"] .b-main { order: 1; border-right: none; }
+    body[data-print-mode="phone"] .b-right { order: 2; }
+    body[data-print-mode="phone"] .b-left { order: 3; }
+    body[data-print-mode="phone"] .b-week-grid { grid-template-columns: 1fr; gap: 14px; }
+    body[data-print-mode="phone"] .b-header { grid-template-columns: 1fr; }
+    body[data-print-mode="phone"] .b-logo { justify-content: flex-start; margin-top: 12px; }
+    body[data-print-mode="phone"] .b-logo img { height: 56px; }
+    body[data-print-mode="phone"] .b-church { font-size: 26px; }
+    body[data-print-mode="phone"] .b-line,
+    body[data-print-mode="phone"] .txt,
+    body[data-print-mode="phone"] .c-body { font-size: 13px; }
+  }
+
+  /* smaller screens: stack editor above preview */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; height: auto; }
+    .editor { border-right: none; border-bottom: 1px solid var(--line); max-height: 60vh; }
+    .preview { transform-origin: top center; }
+  }
+</style>
+<!-- The page's physical size/orientation is rewritten by printMode() right
+     before each print, so the same sheet can go out landscape (computer /
+     printer copies) or portrait (phone-sized single column). -->
+<style id="pageSetupStyle">
+  @page { size: 11in 8.5in; margin: 0.35in; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ==================== EDITOR ==================== -->
+  <aside class="editor">
+    <div class="editor-head">
+      <h1>Bulletin Builder</h1>
+      <p>Edit the fields below — the bulletin updates as you type. When it looks right, use <b>Full Layout</b> for a computer/printer copy or <b>Phone Layout</b> for something you'll text or email. Your work saves on this computer automatically.</p>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn gold" onclick="printMode('full')" title="3-column, landscape — best for printing or viewing on a computer">🖨 Print — Full Layout</button>
+      <button class="btn gold" onclick="printMode('phone')" title="1-column, portrait — best for texting or emailing to a phone">📱 Save PDF — Phone Layout</button>
+      <button class="btn primary" onclick="saveNow(true)">💾 Save</button>
+      <button class="btn small" onclick="startFresh()">Start next week</button>
+      <button class="btn small ghost" onclick="resetAll()">Reset everything</button>
+    </div>
+    <div id="saveNote" class="save-note"></div>
+
+    <!-- WEEKLY: the parts that change every Sunday -->
+    <details class="group" open>
+      <summary>This Sunday <span class="hint">date &amp; sermon</span></summary>
+      <div class="group-body">
+        <div class="field">
+          <label>Date shown on bulletin</label>
+          <input data-bind="date" placeholder="July 12, 2026">
+        </div>
+        <div class="row2">
+          <div class="field"><label>Hymns</label><input data-bind="morning.hymns" placeholder="572, 139"></div>
+          <div class="field"><label>Morning ministry in music</label><input data-bind="morning.ministry" placeholder="e.g. Jane Smith"></div>
+        </div>
+        <div class="field">
+          <label>Sermon title</label>
+          <input data-bind="morning.sermonTitle" placeholder="The More Excellent Way">
+        </div>
+        <div class="row2">
+          <div class="field"><label>Sermon scripture</label><input data-bind="morning.sermonScripture" placeholder="1 Corinthians 13:1-7"></div>
+          <div class="field"><label>Speaker</label><input data-bind="morning.sermonSpeaker" placeholder="Pastor Jon Durso"></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary>Evening service <span class="hint">one line each</span></summary>
+      <div class="group-body">
+        <div id="eveningList"></div>
+        <button class="btn small add-row" onclick="addItem('evening')">+ Add line</button>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary>This week <span class="hint">day · time · what</span></summary>
+      <div class="group-body">
+        <div id="thisWeekList"></div>
+        <button class="btn small add-row" onclick="addItem('thisWeek')">+ Add event</button>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>Coming soon</summary>
+      <div class="group-body">
+        <div id="comingSoonList"></div>
+        <button class="btn small add-row" onclick="addItem('comingSoon')">+ Add item</button>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary>People this week</summary>
+      <div class="group-body">
+        <div class="field">
+          <label>Missionary of the week</label>
+          <textarea data-bind="missionary" placeholder="Missionary Name&#10;Sending Organization"></textarea>
+          <div class="sub">Line breaks are kept.</div>
+        </div>
+        <div class="field">
+          <label>Shut-in of the week</label>
+          <textarea data-bind="shutIn" placeholder="Name&#10;Facility or address"></textarea>
+        </div>
+        <div class="field">
+          <label>Birthdays this week</label>
+          <div id="birthdaysList"></div>
+          <button class="btn small add-row" onclick="addItem('birthdays')">+ Add birthday</button>
+        </div>
+        <div class="field">
+          <label>Anniversaries this week</label>
+          <div id="anniversariesList"></div>
+          <button class="btn small add-row" onclick="addItem('anniversaries')">+ Add anniversary</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>Nursery schedule</summary>
+      <div class="group-body">
+        <div id="nurseryList"></div>
+        <button class="btn small add-row" onclick="addItem('nursery')">+ Add slot</button>
+        <div class="field" style="margin-top:10px">
+          <label>Note under schedule</label>
+          <input data-bind="nurseryNote" placeholder="Nursery available for children birth through age 3">
+        </div>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary>Announcements <span class="hint">event boxes</span></summary>
+      <div class="group-body">
+        <div id="announcementsList"></div>
+        <button class="btn small add-row" onclick="addItem('announcements')">+ Add announcement</button>
+      </div>
+    </details>
+
+    <!-- FIXED: rarely-changing church info, tucked away -->
+    <details class="group">
+      <summary>Church info <span class="hint">rarely changes</span></summary>
+      <div class="group-body">
+        <div class="field"><label>Church name</label><input data-bind="church.name" placeholder="Nottingham Baptist Church"></div>
+        <div class="field"><label>Tagline</label><input data-bind="church.tagline"></div>
+        <div class="field"><label>Pastor</label><input data-bind="church.pastor"></div>
+        <div class="row2">
+          <div class="field"><label>Phone</label><input data-bind="church.phone"></div>
+          <div class="field"><label>Website</label><input data-bind="church.website"></div>
+        </div>
+        <div class="field"><label>Email</label><input data-bind="church.email"></div>
+
+        <div class="field">
+          <label>Logo (optional)</label>
+          <input type="file" accept="image/*" onchange="loadLogo(event)">
+          <div class="sub">Upload your church logo image, or leave blank to use the built-in mark.</div>
+          <div class="logo-preview" id="logoPreview"></div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+
+        <div class="field"><label>Sunday School time</label><input data-bind="fixed.sundaySchool"></div>
+        <div class="field"><label>Morning Worship time</label><input data-bind="fixed.morningWorship"></div>
+        <div class="field"><label>Evening Service time</label><input data-bind="fixed.evening"></div>
+        <div class="field"><label>Wednesday note</label><textarea data-bind="fixed.wednesday"></textarea></div>
+        <div class="field"><label>Office hours</label><input data-bind="fixed.officeHours"></div>
+        <div class="field"><label>Visitor note</label><textarea data-bind="fixed.visitorNote"></textarea></div>
+      </div>
+    </details>
+
+    <div style="padding:16px 20px; font-size:11.5px; color:var(--muted); line-height:1.65;">
+      <b style="color:var(--navy)">Which button to use:</b> <b>Print — Full Layout</b> makes the traditional 3-column sheet, landscape — best for printing at church or reading on a computer. <b>Save PDF — Phone Layout</b> reflows everything into one column, portrait — best for texting or emailing to someone who'll open it on their phone.<br><br>
+      <b style="color:var(--navy)">To print or save:</b> click a button above, then choose <b>Letter</b> paper in the print window (the Full Layout switches orientation to landscape automatically). If it runs onto a second page, that's normal for a bulletin — print <b>double-sided</b> and it's one folded sheet.<br><br>
+      <b style="color:var(--navy)">To email or text it:</b> in the print window, set the destination to <b>Save as PDF</b> and save the file, then attach it. The PDF keeps the design perfectly for everyone who opens it.<br><br>
+      <b style="color:#B26A1F">Important:</b> if the navy and gold print white, turn on <b>“Background graphics”</b> (or “Print backgrounds”) in the print window — it's usually near “More settings.”<br><br>
+      The church logo is already built in. You only need the <b>Logo</b> box under “Church info” if you ever want to swap it.
+    </div>
+  </aside>
+
+  <!-- ==================== PREVIEW ==================== -->
+  <main class="preview">
+    <div class="preview-inner">
+      <div class="bulletin" id="bulletin"><!-- rendered by JS --></div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+/* ============================================================
+   1. DEFAULT CONTENT  (pre-filled from the July 12, 2026 bulletin
+      so the tool works out of the box and shows what goes where)
+   ============================================================ */
+const DEFAULTS = {
+  church: {
+    name: "Nottingham Baptist Church",
+    tagline: "Together We Gather, Grow, Go — For The Glory of God",
+    pastor: "Jonathan Durso, Pastor",
+    phone: "(440) 943-4622",
+    website: "www.NottinghamBaptist.org",
+    email: "office@nottinghambaptist.org",
+    logo: ""            // data-URL if a logo is uploaded
+  },
+  fixed: {
+    sundaySchool: "9:30 a.m.",
+    morningWorship: "10:45 a.m.",
+    evening: "5:00 p.m.",
+    wednesday: "Community Groups — 7:00 p.m.\nJoin us at church or in a Community Group home.",
+    officeHours: "Tuesday–Friday, 8:30 a.m.–2:30 p.m.",
+    visitorNote: "First time here? Please fill out a visitor card in the foyer and place it in the offering plate — we'd love to know you came."
+  },
+  date: "Month Day, Year",
+  morning: {
+    hymns: "###, ###",
+    ministry: "Name",
+    sermonTitle: "Sermon Title",
+    sermonScripture: "Book Chapter:Verses",
+    sermonSpeaker: "Speaker Name"
+  },
+  evening: [
+    "Ministry in Music — Name",
+    "Sample announcement or report",
+    "Testimonies"
+  ],
+  thisWeek: [
+    { d: "Today", t: "6:00 p.m.", x: "Sample event" },
+    { d: "Wed", t: "7:00 p.m.", x: "Community Groups" }
+  ],
+  comingSoon: [
+    { d: "Month Day", x: "Sample upcoming event" }
+  ],
+  missionary: "Missionary Name\nSending Organization",
+  shutIn: "Name\nFacility or address",
+  birthdays: [ "Name (Day)" ],
+  anniversaries: [ "Name & Name (Day)" ],
+  nursery: [
+    { t: "9:30 a.m.", x: "Volunteer names" },
+    { t: "10:45 a.m.", x: "Volunteer names" },
+    { t: "5:00 p.m.", x: "Volunteer names" }
+  ],
+  nurseryNote: "Nursery available for children birth through age 3",
+  announcements: [
+    { title: "Sample Event", meta: "Day, Month Date · Time", body: "Short description of the event goes here.", style: "navy" },
+    { title: "Another Announcement", meta: "Day, Month Date", body: "Details and sign-up information go here.", style: "light" }
+  ]
+};
+
+/* ============================================================
+   2. STATE + STORAGE
+   ============================================================ */
+const KEY = "nottingham_bulletin_v1";
+let state = load();
+
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function load(){
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return Object.assign(deepClone(DEFAULTS), JSON.parse(raw));
+  } catch(e){ /* private mode / preview sandbox — fall back to defaults */ }
+  return deepClone(DEFAULTS);
+}
+
+let saveTimer = null;
+function saveNow(explicit){
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+    note(explicit ? "Saved." : "Saved automatically.", "ok");
+  } catch(e){
+    note("Couldn't save on this browser (e.g. private mode). Your work is still here until you close the tab — use Print / Save as PDF to keep a copy.", "warn");
+  }
+}
+function autosave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>saveNow(false), 600);
+}
+function note(msg, kind){
+  const el = document.getElementById("saveNote");
+  el.textContent = msg;
+  el.className = "save-note " + (kind || "");
+}
+
+/* get/set a value by dotted path, e.g. "morning.sermonTitle" */
+function getPath(p){ return p.split(".").reduce((o,k)=> (o==null?o:o[k]), state); }
+function setPath(p, val){
+  const parts = p.split("."); let o = state;
+  for (let i=0;i<parts.length-1;i++) o = o[parts[i]];
+  o[parts[parts.length-1]] = val;
+}
+
+/* ============================================================
+   3. RENDER THE BULLETIN
+   ============================================================ */
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>]/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c])); }
+function nl(s){ return esc(s).replace(/\n/g,"<br>"); }
+function orHint(s, hint){ return s && s.trim() ? nl(s) : `<span class="empty-hint">${hint}</span>`; }
+
+const BUILTIN_LOGO = "data:image/png;base64,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";  // real Nottingham mark (white, for the navy header)
+
+function render(){
+  const s = state;
+  const logoSrc = s.church.logo || BUILTIN_LOGO;
+
+  const eveningHTML = (s.evening||[]).filter(x=>x&&x.trim())
+    .map(x=>`<div class="b-line">${esc(x)}</div>`).join("")
+    || `<div class="empty-hint">Add evening service items on the left.</div>`;
+
+  const weekHTML = (s.thisWeek||[]).filter(r=>r.d||r.x)
+    .map(r=>`<div class="b-wk-row"><span class="d">${esc(r.d)}</span><span class="t">${esc(r.t)}</span><span class="x">${esc(r.x)}</span></div>`).join("")
+    || `<div class="empty-hint">No events yet.</div>`;
+
+  const comingHTML = (s.comingSoon||[]).filter(r=>r.d||r.x)
+    .map(r=>`<div class="b-wk-row"><span class="d">${esc(r.d)}</span><span class="x">${esc(r.x)}</span></div>`).join("")
+    || `<div class="empty-hint">Nothing scheduled.</div>`;
+
+  const birthdaysHTML = (s.birthdays||[]).filter(x=>x&&x.trim())
+    .map(x=>`<div class="b-people-item">${esc(x)}</div>`).join("")
+    || `<span class="empty-hint">None this week.</span>`;
+
+  const annivHTML = (s.anniversaries||[]).filter(x=>x&&x.trim())
+    .map(x=>`<div class="b-people-item">${esc(x)}</div>`).join("")
+    || `<span class="empty-hint">None this week.</span>`;
+
+  const nurseryHTML = (s.nursery||[]).filter(r=>r.t||r.x)
+    .map(r=>`<span class="t">${esc(r.t)}</span><span>${esc(r.x)}</span>`).join("")
+    || `<span class="empty-hint">—</span>`;
+
+  const cardsHTML = (s.announcements||[]).filter(c=>c.title||c.body)
+    .map(c=>`
+      <div class="b-card ${c.style==='navy'?'navy':'light'}">
+        <div class="c-title">${esc(c.title)}</div>
+        ${c.meta&&c.meta.trim()?`<div class="c-meta">${esc(c.meta)}</div>`:``}
+        <div class="c-body">${nl(c.body)}</div>
+      </div>`).join("")
+    || `<div class="empty-hint">Add announcements on the left.</div>`;
+
+  document.getElementById("bulletin").innerHTML = `
+    <div class="b-header">
+      <div class="b-headmain">
+        <div class="b-church">${esc(s.church.name)}</div>
+        <div class="b-tagline">${esc(s.church.tagline)}</div>
+        <div class="b-pastor">${esc(s.church.pastor)}</div>
+        <div class="b-headrow">
+          <span class="b-date">${esc(s.date)}</span>
+          <span class="b-contact">${esc(s.church.email)} &nbsp;·&nbsp; ${esc(s.church.website)} &nbsp;·&nbsp; ${esc(s.church.phone)}</span>
+        </div>
+      </div>
+      <div class="b-logo"><img src="${logoSrc}" alt="${esc(s.church.name)} logo"></div>
+    </div>
+    <div class="b-rule"></div>
+
+    <div class="b-body">
+      <!-- LEFT -->
+      <div class="b-left">
+        <div class="sec">
+          <div class="lbl">Sunday Services</div>
+          <div class="b-svc"><div class="name">Sunday School</div><div class="time">${esc(s.fixed.sundaySchool)}</div></div>
+          <div class="b-svc"><div class="name">Morning Worship</div><div class="time">${esc(s.fixed.morningWorship)}</div></div>
+          <div class="b-svc"><div class="name">Evening Service</div><div class="time">${esc(s.fixed.evening)}</div></div>
+        </div>
+        <div class="sec">
+          <div class="lbl">Wednesday</div>
+          <div class="note">${nl(s.fixed.wednesday)}</div>
+        </div>
+        <div class="sec">
+          <div class="lbl">Church Office</div>
+          <div class="note">${esc(s.fixed.officeHours)}</div>
+        </div>
+        <div class="sec">
+          <div class="lbl">Online Giving</div>
+          <div class="note">Give at <em>${esc(s.church.website)}</em>, or place your tithe in the offering plate or box in the foyer.</div>
+        </div>
+      </div>
+
+      <!-- CENTER -->
+      <div class="b-main">
+        <div class="b-service">
+          <h2>Morning Service</h2>
+          <div class="b-line"><span class="k">Hymns:</span> ${orHint(s.morning.hymns,"add hymns")}</div>
+          <div class="b-line"><span class="k">Ministry in Music:</span> ${orHint(s.morning.ministry,"who?")}</div>
+          <div class="b-sermon">${orHint(s.morning.sermonTitle,"Sermon title")}</div>
+          <div class="b-sermon-sub">${esc(s.morning.sermonSpeaker)}${s.morning.sermonScripture?" · "+esc(s.morning.sermonScripture):""}</div>
+        </div>
+
+        <div class="b-service">
+          <h2>Evening Service</h2>
+          ${eveningHTML}
+        </div>
+
+        <div class="b-week-grid">
+          <div class="b-week">
+            <h3>This Week</h3>
+            ${weekHTML}
+          </div>
+          <div class="b-week">
+            <h3>Coming Soon</h3>
+            ${comingHTML}
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="b-right">
+        <div class="sec">
+          <div class="lbl">Missionary of the Week</div>
+          <div class="txt">${orHint(s.missionary,"—")}</div>
+        </div>
+        <div class="sec">
+          <div class="lbl">Shut-in of the Week</div>
+          <div class="txt">${orHint(s.shutIn,"—")}</div>
+        </div>
+        <div class="sec">
+          <div class="lbl">Birthdays This Week</div>
+          ${birthdaysHTML}
+          <div class="lbl" style="margin-top:10px">Anniversaries This Week</div>
+          ${annivHTML}
+        </div>
+        <div class="sec">
+          <div class="lbl">Nursery Schedule</div>
+          <div class="b-nursery">${nurseryHTML}</div>
+          ${s.nurseryNote?`<div class="txt" style="margin-top:5px;font-style:italic;color:var(--muted)">${esc(s.nurseryNote)}</div>`:``}
+        </div>
+        <div class="sec">
+          <div class="lbl">Announcements</div>
+          ${cardsHTML}
+        </div>
+      </div>
+    </div>
+
+    <div class="b-visitor">${nl(s.fixed.visitorNote)}</div>
+  `;
+}
+
+/* ============================================================
+   4. BUILD THE EDITOR LISTS (repeatable rows)
+   ============================================================ */
+const LIST_DEFS = {
+  evening:      { el:"eveningList",       kind:"text",   blank:"" },
+  thisWeek:     { el:"thisWeekList",      kind:"dtx",    blank:{d:"",t:"",x:""} },
+  comingSoon:   { el:"comingSoonList",    kind:"dx",     blank:{d:"",x:""} },
+  birthdays:    { el:"birthdaysList",     kind:"text",   blank:"" },
+  anniversaries:{ el:"anniversariesList", kind:"text",   blank:"" },
+  nursery:      { el:"nurseryList",       kind:"tx",     blank:{t:"",x:""} },
+  announcements:{ el:"announcementsList", kind:"card",   blank:{title:"",meta:"",body:"",style:"light"} }
+};
+
+function renderLists(){
+  for (const [name, def] of Object.entries(LIST_DEFS)){
+    const host = document.getElementById(def.el);
+    host.innerHTML = "";
+    (state[name]||[]).forEach((item, i)=>{
+      host.appendChild(makeRow(name, def, item, i));
+    });
+  }
+}
+
+function makeRow(name, def, item, i){
+  const wrap = document.createElement("div");
+  wrap.className = "list-item";
+  let inner = "";
+
+  if (def.kind === "text"){
+    inner = `<input value="${attr(item)}" oninput="updList('${name}',${i},null,this.value)" placeholder="Type here…">`;
+  } else if (def.kind === "dtx"){
+    inner = `<div class="row3">
+      <input value="${attr(item.d)}" placeholder="Day" oninput="updList('${name}',${i},'d',this.value)">
+      <input value="${attr(item.t)}" placeholder="Time" oninput="updList('${name}',${i},'t',this.value)">
+      <input value="${attr(item.x)}" placeholder="What's happening" oninput="updList('${name}',${i},'x',this.value)">
+    </div>`;
+  } else if (def.kind === "dx"){
+    inner = `<div class="row2">
+      <input value="${attr(item.d)}" placeholder="Date" oninput="updList('${name}',${i},'d',this.value)">
+      <input value="${attr(item.x)}" placeholder="What" oninput="updList('${name}',${i},'x',this.value)">
+    </div>`;
+  } else if (def.kind === "tx"){
+    inner = `<div class="row2">
+      <input value="${attr(item.t)}" placeholder="Time" oninput="updList('${name}',${i},'t',this.value)">
+      <input value="${attr(item.x)}" placeholder="Who is serving" oninput="updList('${name}',${i},'x',this.value)">
+    </div>`;
+  } else if (def.kind === "card"){
+    inner = `
+      <input value="${attr(item.title)}" placeholder="Title" oninput="updList('${name}',${i},'title',this.value)" style="margin-bottom:7px">
+      <input value="${attr(item.meta)}" placeholder="When / details (small line)" oninput="updList('${name}',${i},'meta',this.value)" style="margin-bottom:7px">
+      <textarea placeholder="Description" oninput="updList('${name}',${i},'body',this.value)">${esc(item.body)}</textarea>
+      <div class="card-style-toggle">
+        <label><input type="radio" name="cardstyle_${i}" ${item.style==='light'?'checked':''} onchange="updList('${name}',${i},'style','light')"><span>Light box</span></label>
+        <label><input type="radio" name="cardstyle_${i}" ${item.style==='navy'?'checked':''} onchange="updList('${name}',${i},'style','navy')"><span>Navy box</span></label>
+      </div>`;
+  }
+
+  wrap.innerHTML = inner +
+    `<button class="btn small ghost remove" title="Remove" onclick="removeItem('${name}',${i})">✕</button>`;
+  return wrap;
+}
+
+function attr(v){ return String(v==null?"":v).replace(/"/g,"&quot;"); }
+
+function updList(name, i, key, val){
+  if (key === null) state[name][i] = val;
+  else state[name][i][key] = val;
+  render(); autosave();
+}
+function addItem(name){
+  const def = LIST_DEFS[name];
+  const blank = (typeof def.blank === "object") ? deepClone(def.blank) : def.blank;
+  state[name] = state[name] || [];
+  state[name].push(blank);
+  renderLists(); render(); autosave();
+}
+function removeItem(name, i){
+  state[name].splice(i,1);
+  renderLists(); render(); autosave();
+}
+
+/* ============================================================
+   5. WIRE UP THE SIMPLE (non-list) FIELDS
+   ============================================================ */
+function bindSimpleFields(){
+  document.querySelectorAll("[data-bind]").forEach(el=>{
+    const path = el.getAttribute("data-bind");
+    const v = getPath(path);
+    el.value = (v==null?"":v);
+    el.addEventListener("input", ()=>{ setPath(path, el.value); render(); autosave(); });
+  });
+}
+
+/* logo upload */
+function loadLogo(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{ state.church.logo = e.target.result; showLogoPreview(); render(); autosave(); };
+  reader.readAsDataURL(file);
+}
+function showLogoPreview(){
+  const host = document.getElementById("logoPreview");
+  if (state.church.logo){
+    host.innerHTML = `<img src="${state.church.logo}" alt="logo"><button class="btn small ghost" onclick="clearLogo()">Remove logo</button>`;
+  } else host.innerHTML = "";
+}
+function clearLogo(){ state.church.logo = ""; showLogoPreview(); render(); autosave(); }
+
+/* ============================================================
+   6. ACTIONS
+   ============================================================ */
+const PAGE_SETUP = {
+  full:  "@page { size: 11in 8.5in; margin: 0.35in; }",   // landscape letter — fits the 3-column layout
+  phone: "@page { size: letter portrait; margin: 0.45in; }" // portrait — matches the single-column phone layout
+};
+function printMode(mode){
+  document.body.setAttribute("data-print-mode", mode);
+  document.getElementById("pageSetupStyle").textContent = PAGE_SETUP[mode] || PAGE_SETUP.full;
+  window.print();
+}
+// if the print dialog is dismissed (or a plain Cmd/Ctrl+P is used afterward),
+// fall back to the full landscape layout rather than staying stuck in phone mode
+window.addEventListener("afterprint", ()=>{
+  document.body.removeAttribute("data-print-mode");
+  document.getElementById("pageSetupStyle").textContent = PAGE_SETUP.full;
+});
+
+function startFresh(){
+  // keep church info + fixed schedule + recurring announcements; clear the week-specific stuff
+  if (!confirm("Start next week's bulletin?\n\nThis clears the date, sermon, this-week events, birthdays, anniversaries, and people — but keeps your church info, service times, and announcements.")) return;
+  state.date = "";
+  state.morning.hymns = "";
+  state.morning.sermonTitle = "";
+  state.morning.sermonScripture = "";
+  state.morning.ministry = "";
+  state.thisWeek = [];
+  state.comingSoon = state.comingSoon;   // usually keep upcoming items
+  state.missionary = "";
+  state.shutIn = "";
+  state.birthdays = [];
+  state.anniversaries = [];
+  redrawAll(); saveNow(true);
+  note("Ready for next week. Fill in the date and sermon to begin.", "ok");
+}
+
+function resetAll(){
+  if (!confirm("Reset EVERYTHING back to the sample bulletin?\n\nThis erases all your changes on this computer.")) return;
+  state = deepClone(DEFAULTS);
+  try { localStorage.removeItem(KEY); } catch(e){}
+  redrawAll(); note("Reset to the sample bulletin.", "");
+}
+
+function redrawAll(){ bindSimpleFields(); renderLists(); showLogoPreview(); render(); }
+
+/* ============================================================
+   7. INIT
+   ============================================================ */
+bindSimpleFields();
+renderLists();
+showLogoPreview();
+render();
+
+// re-bind simple fields after any full redraw (values may have changed)
+function bindSimpleFields2(){}
+</script>
+</body>
+</html>
