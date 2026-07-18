@@ -348,7 +348,7 @@
      before each print, so the same sheet can go out landscape (computer /
      printer copies) or portrait (phone-sized single column). -->
 <style id="pageSetupStyle">
-  @page { size: letter landscape; margin: 0.15in; }
+  @page { size: letter landscape; margin: 0.2in; }
 </style>
 </head>
 <body>
@@ -495,9 +495,10 @@
 
     <div style="padding:16px 20px; font-size:11.5px; color:var(--muted); line-height:1.65;">
       <b style="color:var(--navy)">Which button to use:</b> <b>Print — Full Layout</b> makes the traditional 3-column sheet, landscape — best for printing at church or reading on a computer. <b>Save PDF — Phone Layout</b> reflows everything into one column, portrait — best for texting or emailing to someone who'll open it on their phone.<br><br>
-      <b style="color:var(--navy)">To print or save:</b> click a button above, then choose <b>Letter</b> paper in the print window. Full Layout is designed to fill the whole sheet with no white border — if there's more content than fits on one page, it flows cleanly onto a second (print <b>double-sided</b> and it's one folded sheet); a normal week's content fits on one page.<br><br>
+      <b style="color:var(--navy)">To print or save:</b> click a button above, then choose <b>Letter</b> paper in the print window. Full Layout leaves a thin 0.2" margin — enough that it clears the edge every printer can't physically reach, while still reading as nearly edge-to-edge. If there's more content than fits on one page, it flows cleanly onto a second (print <b>double-sided</b> and it's one folded sheet); a normal week's content usually fits on one page.<br><br>
       <b style="color:var(--navy)">To email or text it:</b> in the print window, set the destination to <b>Save as PDF</b> and save the file, then attach it. The PDF keeps the design perfectly for everyone who opens it.<br><br>
-      <b style="color:#B26A1F">If Full Layout prints with big white borders or the wrong orientation:</b> some browsers (Safari especially) don't switch to landscape on their own. In the print window, set <b>Orientation</b> to <b>Landscape</b> and <b>Margins</b> to <b>None</b> (Safari: the panel on the right; Chrome: under “More settings”). Also turn on <b>“Background graphics”</b> (or “Print backgrounds”) if the navy and gold print white.<br><br>
+      <b style="color:#B26A1F">If Full Layout prints in portrait, or with a bigger-than-expected white border:</b> some browsers (Safari especially) don't switch to landscape on their own. In the print window, set <b>Orientation</b> to <b>Landscape</b>, and leave <b>Margins</b> on <b>Default</b> (not "None" — the page already carries its own safe margin, and forcing "None" can make a physical printer clip content it can't reach). Also turn on <b>“Background graphics”</b> (or “Print backgrounds”) if the navy and gold print white.<br><br>
+      <b style="color:#B26A1F">If a physical printout still looks clipped at the edge:</b> that's your printer's own hardware limit, not this page — every printer has a strip near the edge it physically cannot print into, and it varies by model. This tool's margin is set to clear that strip for the vast majority of printers. If you want truly edge-to-edge output, check the print dialog for a <b>“Borderless”</b> or <b>“Full bleed”</b> paper option — only your printer's own driver can turn that on.<br><br>
       The church logo is already built in. You only need the <b>Logo</b> box under “Church info” if you ever want to swap it.
     </div>
   </aside>
@@ -874,7 +875,7 @@ function clearLogo(){ state.church.logo = ""; showLogoPreview(); render(); autos
    6. ACTIONS
    ============================================================ */
 const PAGE_SETUP = {
-  full:  "@page { size: letter landscape; margin: 0.15in; }",   // landscape letter, near-edge-to-edge — a hair of margin so real printers (and some browsers' PDF export) don't clip content that hits a literal 0
+  full:  "@page { size: letter landscape; margin: 0.2in; }",   // landscape letter. 0.2in clears the unprintable strip on the vast majority of real printers — true edge-to-edge on paper needs the printer's own "borderless"/"full bleed" setting, which no webpage can turn on for you
   phone: "@page { size: letter portrait; margin: 0.45in; }" // portrait — matches the single-column phone layout
 };
 function printMode(mode){
