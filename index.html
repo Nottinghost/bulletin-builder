@@ -179,8 +179,14 @@
     box-shadow: 0 10px 40px rgba(27,58,107,.14);
     color: var(--ink);
   }
-  /* Force the navy/gold backgrounds to always render when printing or saving to PDF */
-  .bulletin, .bulletin * { -webkit-print-color-adjust: exact; print-color-adjust: exact; overflow-wrap: break-word; }
+  .bulletin, .bulletin * { overflow-wrap: break-word; }
+  /* Force the navy/gold backgrounds to always render when printing or saving to PDF —
+     scoped to just the elements that actually have a background to preserve, rather
+     than every element in the bulletin, since forcing exact-color compositing on
+     everything can make some browsers' print-preview rendering noticeably heavier. */
+  .b-header, .b-left, .b-right, .b-rule, .b-date, .b-card, .b-visitor {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
 
   .b-header {
     background: var(--navy);
@@ -315,6 +321,7 @@
     body { background: #fff; }
     .app { display: block; height: auto; }
     .editor, .toolbar, .editor-head { display: none !important; }
+    .b-rule { background: var(--gold); } /* flat fill instead of a gradient — cheaper to re-rasterize in print preview */
     .preview { display: block; padding: 0; overflow: visible; }
     .bulletin { width: 100%; box-shadow: none; }
     .empty-hint { display: none; }
