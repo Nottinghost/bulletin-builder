@@ -339,15 +339,15 @@
      sheet. Hidden on screen; only shown for Print — Half-Sheet.
      Body text stays 12-14px throughout — this bulletin is read by
      people who need that, even though the sheet itself is small.
+     The two copies sit flush against each other with zero gap — no
+     printed cut guide — so colored bars (header/footer) run
+     seamlessly across the cut line. Each half-sheet's own side
+     padding is what keeps actual text safely clear of the cut,
+     not a visual marker.
      ============================================================ */
   .print-sheets { display: none; }
   .print-page { display: flex; align-items: flex-start; }
   .print-page .half-sheet { flex: 1 1 0; min-width: 0; }
-  .cut-guide { width: 16px; flex: 0 0 16px; border-left: 1px dashed #B7C2D0; position: relative; }
-  .cut-guide::before {
-    content: "✂ cut here"; position: absolute; top: 30px; left: 8px;
-    writing-mode: vertical-rl; font-size: 8px; color: #9AA7B6; letter-spacing: .06em;
-  }
 
   .half-sheet { padding: 14px 20px 10px; font-size: 12.5px; line-height: 1.3; color: var(--ink); overflow-wrap: break-word; }
   .hs-header, .hs-footer, .hs-date, .hs-card {
@@ -399,7 +399,7 @@
   .hc-meta { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
   .hc-body { font-size: 12.5px; line-height: 1.4; }
 
-  .hs-footer { margin-top: 4px; background: var(--navy-mid); color: rgba(255,255,255,.92); font-size: 12px; text-align: center; padding: 6px 10px; margin-left: -20px; margin-right: -20px; }
+  .hs-footer { margin-top: 4px; background: var(--navy-mid); color: rgba(255,255,255,.92); font-size: 12px; text-align: center; padding: 6px 20px; margin-left: -20px; margin-right: -20px; }
 
   /* ============================================================
      PRINT — the sheet only. Everything else vanishes.
@@ -436,10 +436,31 @@
     body[data-print-mode="phone"] .b-header { grid-template-columns: 1fr; }
     body[data-print-mode="phone"] .b-logo { justify-content: flex-start; margin-top: 12px; }
     body[data-print-mode="phone"] .b-logo img { height: 56px; }
-    body[data-print-mode="phone"] .b-church { font-size: 26px; }
+    /* a phone screen shows the whole page at once, much smaller in the hand
+       than a sheet of paper held at arm's length — every size below is
+       bumped well past the print minimum so it reads comfortably at that
+       smaller effective size, not just technically "big enough" on paper */
+    body[data-print-mode="phone"] .b-church { font-size: 32px; }
+    body[data-print-mode="phone"] .b-tagline { font-size: 13px; }
+    body[data-print-mode="phone"] .b-pastor { font-size: 16px; }
+    body[data-print-mode="phone"] .b-date { font-size: 22px; padding: 6px 16px; }
+    body[data-print-mode="phone"] .b-contact { font-size: 15px; }
+    body[data-print-mode="phone"] .lbl { font-size: 14px; }
+    body[data-print-mode="phone"] .b-svc .name,
+    body[data-print-mode="phone"] .b-svc .time { font-size: 17px; }
+    body[data-print-mode="phone"] .b-left .note { font-size: 15px; }
     body[data-print-mode="phone"] .b-line,
     body[data-print-mode="phone"] .txt,
-    body[data-print-mode="phone"] .c-body { font-size: 13px; }
+    body[data-print-mode="phone"] .c-body { font-size: 17px; }
+    body[data-print-mode="phone"] .b-sermon { font-size: 22px; }
+    body[data-print-mode="phone"] .b-sermon-sub { font-size: 16px; }
+    body[data-print-mode="phone"] .b-wk-row { font-size: 17px; }
+    body[data-print-mode="phone"] .b-people-item { font-size: 17px; }
+    body[data-print-mode="phone"] .b-nursery,
+    body[data-print-mode="phone"] .b-attendance { font-size: 15px; }
+    body[data-print-mode="phone"] .c-title { font-size: 19px; }
+    body[data-print-mode="phone"] .c-meta { font-size: 15px; }
+    body[data-print-mode="phone"] .b-visitor { font-size: 15px; }
   }
 
   /* smaller screens: stack editor above preview */
@@ -1030,12 +1051,10 @@ function render(){
   document.getElementById("printSheets").innerHTML = `
     <div class="print-page">
       <div class="half-sheet">${frontHTML}</div>
-      <div class="cut-guide"></div>
       <div class="half-sheet">${frontHTML}</div>
     </div>
     <div class="print-page">
       <div class="half-sheet">${backHTML}</div>
-      <div class="cut-guide"></div>
       <div class="half-sheet">${backHTML}</div>
     </div>
   `;
