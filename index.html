@@ -1,6 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- ================================================================
+     PROJECT NOTES — read this before touching anything below.
+     (Nothing else in this file documents where it lives or deploys.)
+
+     WHAT THIS IS: a single self-contained HTML file — no build step,
+     no dependencies beyond Google Fonts, no backend. Editor form on
+     the left, live bulletin preview on the right. Content is saved
+     to the browser's own localStorage (per device, does not sync
+     across computers/people — that's a known, accepted limitation).
+
+     WHERE IT LIVES:
+       - Local working copy: ~/Library/Mobile Documents/com~apple~CloudDocs/
+         Nottingham/bulletin-builder/index.html (this file, iCloud-synced)
+       - Git remote: https://github.com/Nottinghost/bulletin-builder
+       - Live site: https://nottinghost.github.io/bulletin-builder/
+         (GitHub Pages, auto-deploys ~1-2 min after a push to main)
+       - GitHub account "Nottinghost" is owned by the church office
+         (office@nottinghambaptist.org), not any one person — deliberate,
+         so it keeps working after staff turnover. gh CLI is already
+         authenticated as this account on this machine.
+
+     TO DEPLOY A CHANGE: edit this file, then from its folder:
+         git add index.html && git commit -m "..." && git push
+
+     TWO PRINT OUTPUTS (see printMode() near the bottom of the script):
+       - "Half-Sheet Bulletin" (mode "sheet") — the real production
+         format: 2 physical pages, each showing the SAME half-sheet
+         content mirrored twice side by side. Printed double-sided and
+         cut down the middle, this yields two identical complete small
+         bulletins per full sheet of paper. This MUST stay at exactly
+         2 pages — a 3rd page breaks the cut-in-half workflow. See the
+         HS_PAGE_HEIGHT_PX budget and checkPageFit() warning banner.
+       - "Phone Layout" (mode "phone") — single column, full portrait
+         page, for texting/emailing. Page count doesn't matter here.
+
+     HARD CONSTRAINTS a future change should not quietly violate:
+       - Body text stays 12-14px minimum everywhere except purely
+         decorative text (e.g. the tagline) — the congregation includes
+         people who genuinely can't read smaller than that.
+       - Prefer Chrome/Edge for printing/testing; Safari has repeatedly
+         shown engine-specific quirks (orientation, margins, a render
+         freeze) documented in the help text at the bottom of the editor.
+     ================================================================ -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nottingham Baptist — Bulletin Builder</title>
