@@ -98,6 +98,14 @@
   .save-note.ok { color: #2F7D46; }
   .save-note.warn { color: #B26A1F; }
 
+  .fit-warning {
+    display: none;
+    margin: 0 20px 12px; padding: 10px 12px;
+    border-radius: 7px; background: #FBF3E7; border: 1px solid #E8C384;
+    color: #8A5A1E; font-size: 12px; line-height: 1.5; font-weight: 500;
+  }
+  .fit-warning.show { display: block; }
+
   details.group {
     border-bottom: 1px solid var(--line);
   }
@@ -345,8 +353,14 @@
      padding is what keeps actual text safely clear of the cut,
      not a visual marker.
      ============================================================ */
-  .print-sheets { display: none; }
-  .print-page { display: flex; align-items: flex-start; }
+  /* Kept off-screen (not display:none) so its real height can be measured
+     on every render() — that's how the overflow warning near the print
+     button knows whether content will spill onto a 3rd page. Width is
+     fixed to the actual printable width (11in page − 2×0.2in margin, at
+     96dpi — see PAGE_SETUP.sheet in the script) so the measurement matches
+     print exactly regardless of the browser window's own size. */
+  .print-sheets { width: 0; height: 0; overflow: hidden; }
+  .print-page { display: flex; align-items: flex-start; width: 1017.6px; }
   .print-page .half-sheet { flex: 1 1 0; min-width: 0; }
 
   .half-sheet { padding: 14px 20px 10px; font-size: 12.5px; line-height: 1.3; color: var(--ink); overflow-wrap: break-word; }
@@ -420,7 +434,7 @@
     /* ---- half-sheet mode: two mirrored half-sheets per page, front
        page then back page, cut in half after printing double-sided ---- */
     body[data-print-mode="sheet"] .bulletin { display: none; }
-    body[data-print-mode="sheet"] .print-sheets { display: block; }
+    body[data-print-mode="sheet"] .print-sheets { width: auto; height: auto; overflow: visible; display: block; }
     .print-page:first-child { break-after: page; page-break-after: always; }
     .print-page:last-child { break-after: auto; page-break-after: auto; }
 
@@ -495,6 +509,7 @@
       <button class="btn small ghost" onclick="resetAll()">Reset everything</button>
     </div>
     <div id="saveNote" class="save-note"></div>
+    <div id="fitWarning" class="fit-warning"></div>
 
     <!-- WEEKLY: the parts that change every Sunday -->
     <details class="group" open>
@@ -507,6 +522,12 @@
         <div class="row2">
           <div class="field"><label>Hymns</label><input data-bind="morning.hymns" placeholder="572, 139"></div>
           <div class="field"><label>Morning ministry in music</label><input data-bind="morning.ministry" placeholder="e.g. Jane Smith"></div>
+        </div>
+        <div class="field">
+          <label>Optional order-of-service items</label>
+          <div class="sub" style="margin:0 0 6px">Only for what happens this week — Scripture Reading, Offertory, Baptism, Communion. Leave empty most weeks.</div>
+          <div id="morningExtraList"></div>
+          <button class="btn small add-row" onclick="addItem('morningExtra')">+ Add item</button>
         </div>
         <div class="field">
           <label>Sermon title</label>
@@ -680,6 +701,7 @@ const DEFAULTS = {
     sermonScripture: "Book Chapter:Verses",
     sermonSpeaker: "Speaker Name"
   },
+  morningExtra: [],   // optional order-of-service lines that don't happen every week (Scripture Reading, Offertory, Baptism...)
   evening: [
     "Ministry in Music — Name",
     "Sample announcement or report",
@@ -771,6 +793,10 @@ const BUILTIN_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQQAAAETCAYA
    classes (hs-*) sized for a ~5.5x8.5in half-sheet instead of the
    tri-column desktop preview.
    ============================================================ */
+function hsMorningExtraHTML(s){
+  return (s.morningExtra||[]).filter(x=>x&&x.trim())
+    .map(x=>`<div class="hs-line">${esc(x)}</div>`).join("");
+}
 function hsEveningHTML(s){
   return (s.evening||[]).filter(x=>x&&x.trim())
     .map(x=>`<div class="hs-line">${esc(x)}</div>`).join("")
@@ -835,6 +861,7 @@ function halfSheetFrontHTML(s, logoSrc){
       <div class="hs-lbl">Morning Service</div>
       <div class="hs-line"><span class="k">Hymns:</span> ${orHint(s.morning.hymns,"add hymns")}</div>
       <div class="hs-line"><span class="k">Ministry in Music:</span> ${orHint(s.morning.ministry,"who?")}</div>
+      ${hsMorningExtraHTML(s)}
       <div class="hs-sermon">${orHint(s.morning.sermonTitle,"Sermon title")}</div>
       <div class="hs-sermon-sub">${esc(s.morning.sermonSpeaker)}${s.morning.sermonScripture?" · "+esc(s.morning.sermonScripture):""}</div>
     </div>
@@ -903,6 +930,9 @@ function halfSheetBackHTML(s){
 function render(){
   const s = state;
   const logoSrc = s.church.logo || BUILTIN_LOGO;
+
+  const morningExtraHTML = (s.morningExtra||[]).filter(x=>x&&x.trim())
+    .map(x=>`<div class="b-line">${esc(x)}</div>`).join("");
 
   const eveningHTML = (s.evening||[]).filter(x=>x&&x.trim())
     .map(x=>`<div class="b-line">${esc(x)}</div>`).join("")
@@ -985,6 +1015,7 @@ function render(){
           <h2>Morning Service</h2>
           <div class="b-line"><span class="k">Hymns:</span> ${orHint(s.morning.hymns,"add hymns")}</div>
           <div class="b-line"><span class="k">Ministry in Music:</span> ${orHint(s.morning.ministry,"who?")}</div>
+          ${morningExtraHTML}
           <div class="b-sermon">${orHint(s.morning.sermonTitle,"Sermon title")}</div>
           <div class="b-sermon-sub">${esc(s.morning.sermonSpeaker)}${s.morning.sermonScripture?" · "+esc(s.morning.sermonScripture):""}</div>
         </div>
@@ -1058,12 +1089,14 @@ function render(){
       <div class="half-sheet">${backHTML}</div>
     </div>
   `;
+  checkPageFit();
 }
 
 /* ============================================================
    4. BUILD THE EDITOR LISTS (repeatable rows)
    ============================================================ */
 const LIST_DEFS = {
+  morningExtra: { el:"morningExtraList",  kind:"text",   blank:"" },
   evening:      { el:"eveningList",       kind:"text",   blank:"" },
   thisWeek:     { el:"thisWeekList",      kind:"week",   blank:{d:"",t:"",x:"",recurring:false} },
   comingSoon:   { el:"comingSoonList",    kind:"dx",     blank:{d:"",x:""} },
@@ -1226,6 +1259,30 @@ const PAGE_SETUP = {
   sheet: "@page { size: letter landscape; margin: 0.2in; }",   // landscape letter, split into 2 portrait half-sheets. 0.2in clears the unprintable strip on the vast majority of real printers
   phone: "@page { size: letter portrait; margin: 0.45in; }" // portrait — matches the single-column phone layout
 };
+
+/* How much a half-sheet can hold before it spills onto a 3rd printed page —
+   derived from the same landscape letter + 0.2in margin as PAGE_SETUP.sheet
+   above, at the standard 96dpi browsers use for CSS pixels. Keep these two
+   in sync if the page size or margin ever changes. */
+const HS_PAGE_HEIGHT_PX = (8.5 - 2*0.2) * 96; // 8.1in of usable height
+
+function checkPageFit(){
+  const el = document.getElementById("fitWarning");
+  const pages = document.querySelectorAll("#printSheets .print-page");
+  if (!pages.length){ el.classList.remove("show"); return; }
+  const labels = ["front (services) half-sheet", "back (people/announcements) half-sheet"];
+  const over = [];
+  pages.forEach((p, i)=>{
+    const hs = p.querySelector(".half-sheet");
+    if (hs && hs.getBoundingClientRect().height > HS_PAGE_HEIGHT_PX) over.push(labels[i] || `page ${i+1}`);
+  });
+  if (over.length){
+    el.textContent = `⚠ The ${over.join(" and ")} has more content than fits on one page. Printing now will add a 3rd page and break the "print double-sided, cut in half" setup. Try shortening a note, moving something to Coming Soon, or removing an optional item.`;
+    el.classList.add("show");
+  } else {
+    el.classList.remove("show");
+  }
+}
 function printMode(mode){
   document.body.setAttribute("data-print-mode", mode);
   document.getElementById("pageSetupStyle").textContent = PAGE_SETUP[mode] || PAGE_SETUP.sheet;
@@ -1240,12 +1297,13 @@ window.addEventListener("afterprint", ()=>{
 
 function startFresh(){
   // keep church info + fixed schedule + recurring announcements; clear the week-specific stuff
-  if (!confirm("Start next week's bulletin?\n\nThis clears the date, sermon, this-week events (except ones marked \"Recurring\"), attendance, birthdays, anniversaries, and people — but keeps your church info, service times, and announcements.")) return;
+  if (!confirm("Start next week's bulletin?\n\nThis clears the date, sermon, optional order-of-service items, this-week events (except ones marked \"Recurring\"), attendance, birthdays, anniversaries, and people — but keeps your church info, service times, and announcements.")) return;
   state.date = "";
   state.morning.hymns = "";
   state.morning.sermonTitle = "";
   state.morning.sermonScripture = "";
   state.morning.ministry = "";
+  state.morningExtra = [];
   state.thisWeek = (state.thisWeek||[]).filter(x=>x.recurring);
   state.comingSoon = state.comingSoon;   // usually keep upcoming items
   state.missionary = "";
