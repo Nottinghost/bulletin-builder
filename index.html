@@ -471,9 +471,15 @@
   }
   .hs-header { background: var(--navy); color: #fff; margin: -14px -20px 8px; padding: 9px 18px 8px; }
   .hs-top { display: flex; align-items: center; gap: 10px; }
-  .hs-logo img { height: 36px; width: auto; object-fit: contain; }
-  .hs-church { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.08; }
-  .hs-tagline { font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase; color: #BFD0E8; margin-top: 3px; }
+  .hs-logo img { height: 32px; width: auto; object-fit: contain; }
+  /* min-width:0 lets this column actually shrink/wrap within the flex
+     row instead of defaulting to its content's min-content size — a
+     long church name was sitting right at the header's edge with
+     almost no clearance, so small print-engine differences could make
+     it look cramped or clipped. */
+  .hs-headtext { min-width: 0; }
+  .hs-church { font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1.15; }
+  .hs-tagline { font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: #BFD0E8; margin-top: 3px; }
   .hs-pastor { font-size: 12px; color: rgba(255,255,255,.85); margin-top: 3px; }
   .hs-daterow { display: flex; align-items: center; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
   .hs-date { font-family: var(--font-display); font-size: 13px; font-weight: 600; background: var(--gold); color: #fff; padding: 3px 9px; border-radius: 4px; }
@@ -522,6 +528,14 @@
   .hs-announce-page .hc-title { font-size: 16.5px; }
   .hs-announce-page .hc-meta { font-size: 13px; }
   .hs-announce-page .hc-body { font-size: 13.5px; line-height: 1.6; }
+
+  /* This third page has no repeated header (see halfSheetAnnounceHTML) —
+     just one big title standing in for it. */
+  .hs-page-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 21px;
+    color: var(--navy); padding-bottom: 7px; margin-bottom: 10px;
+    border-bottom: 2px solid var(--gold);
+  }
 
   .hs-footer { margin-top: 4px; background: var(--navy); color: rgba(255,255,255,.92); font-size: 12px; text-align: center; padding: 6px 20px; margin-left: -20px; margin-right: -20px; }
 
@@ -1252,7 +1266,7 @@ function halfSheetFrontHTML(s, logoSrc){
     <div class="hs-header">
       <div class="hs-top">
         <div class="hs-logo"><img src="${logoSrc}" alt="${esc(s.church.name)} logo"></div>
-        <div>
+        <div class="hs-headtext">
           <div class="hs-church">${esc(s.church.name)}</div>
           <div class="hs-tagline">${esc(s.church.tagline)}</div>
         </div>
@@ -1333,26 +1347,16 @@ function halfSheetMiddleHTML(s){
   `;
 }
 
-function halfSheetAnnounceHTML(s, logoSrc){
+function halfSheetAnnounceHTML(s){
   return `
-    <div class="hs-header">
-      <div class="hs-top">
-        <div class="hs-logo"><img src="${logoSrc}" alt="${esc(s.church.name)} logo"></div>
-        <div>
-          <div class="hs-church">${esc(s.church.name)}</div>
-          <div class="hs-tagline">${esc(s.church.tagline)}</div>
-        </div>
-      </div>
-      <div class="hs-daterow"><span class="hs-date">${esc(s.date)}</span><span class="hs-contact">Announcements</span></div>
-    </div>
     ${visible('announcements') ? `
     <div class="hs-sec hs-announce-page">
-      <div class="hs-lbl">Announcements</div>
+      <div class="hs-page-title">Announcements</div>
       ${hsCardsHTML(s)}
     </div>` : ``}
     ${(s.customNotes||[]).some(n=>n.title||n.body) ? `
     <div class="hs-sec hs-announce-page">
-      <div class="hs-lbl">Additional Notes</div>
+      <div class="hs-page-title">Additional Notes</div>
       ${hsCustomNotesHTML(s)}
     </div>` : ``}
     <div class="hs-sec">
@@ -1547,7 +1551,7 @@ function render(){
 
   const frontHTML = halfSheetFrontHTML(s, logoSrc);
   const middleHTML = halfSheetMiddleHTML(s);
-  const announceHTML = halfSheetAnnounceHTML(s, logoSrc);
+  const announceHTML = halfSheetAnnounceHTML(s);
   document.getElementById("printSheets").innerHTML = `
     <div class="print-page">
       <div class="half-sheet">${frontHTML}</div>
