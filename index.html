@@ -447,14 +447,17 @@
      button knows whether content will spill onto an extra page. Width is
      fixed to the actual printable width (11in page − 2×0.3in margin, at
      96dpi — see PAGE_SETUP.sheet in the script) so the measurement matches
-     print exactly regardless of the browser window's own size. This fixed
-     px width is ONLY for that off-screen measurement, though — actual
-     printing overrides it back to width:100% (see the @media print rule
-     below) since a fixed px figure isn't reliably exact once a real print
-     engine is involved, and any gap between the two just piles up as
-     extra space on one side instead of an even border. */
+     print exactly regardless of the browser window's own size. This same
+     fixed width is also what actually prints (see margin: 0 auto below)
+     — NOT width:100% of the true printable area. A real print engine's
+     usable width isn't reliably exact, and stretching to fill it made
+     the fit-check's measurement (always at this fixed width) stop
+     matching what actually printed, which could silently overflow onto
+     extra pages with no warning. Centering a fixed, known width instead
+     means the fit-check is always measuring the real thing, and any
+     leftover slack still splits evenly as an equal margin either way. */
   .print-sheets { width: 0; height: 0; overflow: hidden; }
-  .print-page { position: relative; display: flex; align-items: flex-start; width: 998.4px; }
+  .print-page { position: relative; display: flex; align-items: flex-start; width: 998.4px; margin: 0 auto; }
   .print-page .half-sheet { flex: 1 1 0; min-width: 0; }
   .print-page .half-sheet:first-child { margin-right: 14.4px; }
   .print-page .half-sheet:last-child { margin-left: 14.4px; }
@@ -551,7 +554,8 @@
      ============================================================ */
   .prayer-sheet { width: 0; height: 0; overflow: hidden; }
   .prayer-page {
-    width: 758.4px; /* 8.5in letter width − 2×0.3in margin, 96dpi — matches PAGE_SETUP.prayer. Off-screen-measurement width only; printing overrides to 100% below, same reasoning as .print-page. */
+    width: 758.4px; /* 8.5in letter width − 2×0.3in margin, 96dpi — matches PAGE_SETUP.prayer. Same fixed-and-centered reasoning as .print-page above. */
+    margin: 0 auto;
     background: var(--white); color: var(--ink);
   }
   .pb-header, .pb-feature { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -600,21 +604,12 @@
        printing double-sided ---- */
     body[data-print-mode="sheet"] .bulletin { display: none; }
     body[data-print-mode="sheet"] .print-sheets { width: auto; height: auto; overflow: visible; display: block; }
-    /* Fill the true printable width at print time instead of the fixed
-       998.4px used for the off-screen fit measurement — that px figure
-       assumes a specific px-per-inch conversion that doesn't always hold
-       exactly in every browser's print engine, and any mismatch used to
-       leave the leftover space stacked on one side instead of split as
-       an equal border. width:100% makes the @page margin the only thing
-       controlling the border, which is symmetric by definition. */
-    body[data-print-mode="sheet"] .print-page { width: 100%; }
     .print-page { break-after: page; page-break-after: always; }
     .print-page:last-child { break-after: auto; page-break-after: auto; }
 
     /* ---- prayer bulletin: one full page, its own document entirely ---- */
     body[data-print-mode="prayer"] .bulletin { display: none; }
     body[data-print-mode="prayer"] .prayer-sheet { width: auto; height: auto; overflow: visible; display: block; }
-    body[data-print-mode="prayer"] .prayer-page { width: 100%; } /* same reasoning as .print-page above */
 
   }
 
@@ -1803,9 +1798,14 @@ function checkPrayerFit(){
     el.classList.remove("show");
   }
 }
-function printMode(mode){
+async function printMode(mode){
   document.body.setAttribute("data-print-mode", mode);
   document.getElementById("pageSetupStyle").textContent = PAGE_SETUP[mode] || PAGE_SETUP.sheet;
+  // Google Fonts load async — printing before "Playfair Display" is ready
+  // silently falls back to a generic serif with different letter widths,
+  // which is one of the ways print/PDF output can end up looking tighter
+  // or more cramped than what's on screen (where fonts had time to load).
+  try { await document.fonts.ready; } catch(e){ /* older browser — proceed anyway */ }
   window.print();
 }
 // if the print dialog is dismissed (or a plain Cmd/Ctrl+P is used afterward),
