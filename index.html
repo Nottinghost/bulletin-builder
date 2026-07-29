@@ -43,6 +43,15 @@
        - "Phone Layout" (mode "phone") — single column, full portrait
          page, for texting/emailing. Page count doesn't matter here.
 
+     OPTIONAL SECTIONS: most weekly sections (Evening Service, This Week,
+     Coming Soon, Missionary, Shut-in, Birthdays, Anniversaries, Attendance,
+     Nursery, Announcements) have a "Show" checkbox next to their editor
+     label (state.sectionVisibility) — hiding one removes it everywhere
+     (desktop preview + every half-sheet page), not just on screen. See
+     visible() near bindSectionToggles(). There's also a free-form
+     "Custom sections" list (state.customNotes) for anything else, always
+     shown right after Announcements.
+
      HARD CONSTRAINTS a future change should not quietly violate:
        - Body text stays 12-14px minimum everywhere except purely
          decorative text (e.g. the tagline) — the congregation includes
@@ -170,8 +179,20 @@
     content: "▸"; color: var(--gold); font-size: 11px; transition: transform .15s;
   }
   details.group[open] > summary::before { transform: rotate(90deg); }
-  details.group > summary .hint { font-weight: 400; font-size: 11px; color: var(--muted); margin-left: auto; }
+  details.group > summary .hint { font-weight: 400; font-size: 11px; color: var(--muted); }
+  details.group > summary .sum-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
   .group-body { padding: 4px 20px 18px; }
+
+  /* show/hide checkbox for an optional section — sits in a summary's
+     .sum-right, or in a .field-head next to a single field's label.
+     Click doesn't bubble to the parent <summary> (would toggle open/closed). */
+  .sec-toggle {
+    display: flex; align-items: center; gap: 4px; cursor: pointer;
+    font-size: 11px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--muted);
+  }
+  .sec-toggle input { width: auto; margin: 0; }
+  .field-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .field-head label { margin-bottom: 0; }
 
   .field { margin-bottom: 12px; }
   .field:last-child { margin-bottom: 0; }
@@ -608,7 +629,12 @@
     </details>
 
     <details class="group" open>
-      <summary>Evening service <span class="hint">one line each</span></summary>
+      <summary>Evening service
+        <span class="sum-right">
+          <span class="hint">one line each</span>
+          <label class="sec-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-section-toggle="evening" checked> Show</label>
+        </span>
+      </summary>
       <div class="group-body">
         <div id="eveningList"></div>
         <button class="btn small add-row" onclick="addItem('evening')">+ Add line</button>
@@ -616,7 +642,12 @@
     </details>
 
     <details class="group" open>
-      <summary>This week <span class="hint">day · time · what</span></summary>
+      <summary>This week
+        <span class="sum-right">
+          <span class="hint">day · time · what</span>
+          <label class="sec-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-section-toggle="thisWeek" checked> Show</label>
+        </span>
+      </summary>
       <div class="group-body">
         <div id="thisWeekList"></div>
         <button class="btn small add-row" onclick="addItem('thisWeek')">+ Add event</button>
@@ -624,7 +655,9 @@
     </details>
 
     <details class="group">
-      <summary>Coming soon</summary>
+      <summary>Coming soon
+        <label class="sum-right sec-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-section-toggle="comingSoon" checked> Show</label>
+      </summary>
       <div class="group-body">
         <div id="comingSoonList"></div>
         <button class="btn small add-row" onclick="addItem('comingSoon')">+ Add item</button>
@@ -635,21 +668,33 @@
       <summary>People this week</summary>
       <div class="group-body">
         <div class="field">
-          <label>Missionary of the week</label>
+          <div class="field-head">
+            <label>Missionary of the week</label>
+            <label class="sec-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-section-toggle="missionary" checked> Show</label>
+          </div>
           <textarea data-bind="missionary" placeholder="Missionary Name&#10;Sending Organization"></textarea>
           <div class="sub">Line breaks are kept.</div>
         </div>
         <div class="field">
-          <label>Shut-in of the week</label>
+          <div class="field-head">
+            <label>Shut-in of the week</label>
+            <label class="sec-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-section-toggle="shutIn" checked> Show</label>
+          </div>
           <textarea data-bind="shutIn" placeholder="Name&#10;Facility or address"></textarea>
         </div>
         <div class="field">
-          <label>Birthdays this week</label>
+          <div class="field-head">
+            <label>Birthdays this week</label>
+            <label class="sec-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-section-toggle="birthdays" checked> Show</label>
+          </div>
           <div id="birthdaysList"></div>
           <button class="btn small add-row" onclick="addItem('birthdays')">+ Add birthday</button>
         </div>
         <div class="field">
-          <label>Anniversaries this week</label>
+          <div class="field-head">
+            <label>Anniversaries this week</label>
+            <label class="sec-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-section-toggle="anniversaries" checked> Show</label>
+          </div>
           <div id="anniversariesList"></div>
           <button class="btn small add-row" onclick="addItem('anniversaries')">+ Add anniversary</button>
         </div>
@@ -657,7 +702,12 @@
     </details>
 
     <details class="group">
-      <summary>Attendance <span class="hint">last week's numbers</span></summary>
+      <summary>Attendance
+        <span class="sum-right">
+          <span class="hint">last week's numbers</span>
+          <label class="sec-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-section-toggle="attendance" checked> Show</label>
+        </span>
+      </summary>
       <div class="group-body">
         <div id="attendanceList"></div>
         <button class="btn small add-row" onclick="addItem('attendance')">+ Add row</button>
@@ -665,7 +715,9 @@
     </details>
 
     <details class="group">
-      <summary>Nursery schedule</summary>
+      <summary>Nursery schedule
+        <label class="sum-right sec-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-section-toggle="nursery" checked> Show</label>
+      </summary>
       <div class="group-body">
         <div id="nurseryList"></div>
         <button class="btn small add-row" onclick="addItem('nursery')">+ Add slot</button>
@@ -677,10 +729,24 @@
     </details>
 
     <details class="group" open>
-      <summary>Announcements <span class="hint">event boxes</span></summary>
+      <summary>Announcements
+        <span class="sum-right">
+          <span class="hint">event boxes</span>
+          <label class="sec-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-section-toggle="announcements" checked> Show</label>
+        </span>
+      </summary>
       <div class="group-body">
         <div id="announcementsList"></div>
         <button class="btn small add-row" onclick="addItem('announcements')">+ Add announcement</button>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>Custom sections <span class="hint">add anything</span></summary>
+      <div class="group-body">
+        <div class="sub" style="margin:0 0 10px">For anything that doesn't fit elsewhere — each one gets its own labeled box, shown right after Announcements everywhere this bulletin appears.</div>
+        <div id="customNotesList"></div>
+        <button class="btn small add-row" onclick="addItem('customNotes')">+ Add custom section</button>
       </div>
     </details>
 
@@ -762,6 +828,13 @@ const DEFAULTS = {
     logo: ""            // data-URL if a logo is uploaded
   },
   theme: { navy: "#1B3958", gold: "#B8975A" },  // print colors — tweak in "Church info" if a printer renders them off
+  // per-section show/hide — a missing/undefined key means "shown", so old
+  // saved bulletins from before this existed keep behaving exactly as before
+  sectionVisibility: {
+    evening: true, thisWeek: true, comingSoon: true, missionary: true,
+    shutIn: true, birthdays: true, anniversaries: true, attendance: true,
+    nursery: true, announcements: true
+  },
   fixed: {
     sundaySchool: "9:30 a.m.",
     morningWorship: "10:45 a.m.",
@@ -810,7 +883,8 @@ const DEFAULTS = {
   announcements: [
     { title: "Sample Event", meta: "Day, Month Date · Time", body: "Short description of the event goes here.", style: "navy" },
     { title: "Another Announcement", meta: "Day, Month Date", body: "Details and sign-up information go here.", style: "light" }
-  ]
+  ],
+  customNotes: []   // freeform extra sections — {title, body} — always shown right after Announcements
 };
 
 /* ============================================================
@@ -919,6 +993,14 @@ function hsCardsHTML(s){
       </div>`).join("")
     || `<div class="empty-hint">Add announcements on the left.</div>`;
 }
+function hsCustomNotesHTML(s){
+  return (s.customNotes||[]).filter(n=>n.title||n.body)
+    .map(n=>`
+      <div class="hs-card light">
+        ${n.title?`<div class="hc-title">${esc(n.title)}</div>`:``}
+        <div class="hc-body">${nl(n.body)}</div>
+      </div>`).join("");
+}
 
 function halfSheetFrontHTML(s, logoSrc){
   return `
@@ -942,18 +1024,21 @@ function halfSheetFrontHTML(s, logoSrc){
       <div class="hs-sermon">${orHint(s.morning.sermonTitle,"Sermon title")}</div>
       <div class="hs-sermon-sub">${esc(s.morning.sermonSpeaker)}${s.morning.sermonScripture?" · "+esc(s.morning.sermonScripture):""}</div>
     </div>
+    ${visible('evening') ? `
     <div class="hs-sec">
       <div class="hs-lbl">Evening Service</div>
       ${hsEveningHTML(s)}
-    </div>
+    </div>` : ``}
+    ${visible('thisWeek') ? `
     <div class="hs-sec">
       <div class="hs-lbl">This Week</div>
       ${hsWeekHTML(s)}
-    </div>
+    </div>` : ``}
+    ${visible('comingSoon') ? `
     <div class="hs-sec">
       <div class="hs-lbl">Coming Soon</div>
       ${hsComingHTML(s)}
-    </div>
+    </div>` : ``}
     <div class="hs-sec hs-box">
       <div class="hs-lbl">Sunday Services</div>
       <div class="hs-svc"><span class="name">Sunday School</span><span class="time">${esc(s.fixed.sundaySchool)}</span></div>
@@ -970,29 +1055,36 @@ function halfSheetFrontHTML(s, logoSrc){
 
 function halfSheetMiddleHTML(s){
   return `
+    ${visible('missionary') ? `
     <div class="hs-sec">
       <div class="hs-lbl">Missionary of the Week</div>
       <div class="hs-txt">${orHint(s.missionary,"—")}</div>
-    </div>
+    </div>` : ``}
+    ${visible('shutIn') ? `
     <div class="hs-sec">
       <div class="hs-lbl">Shut-in of the Week</div>
       <div class="hs-txt">${orHint(s.shutIn,"—")}</div>
-    </div>
+    </div>` : ``}
+    ${visible('attendance') ? `
     <div class="hs-sec">
       <div class="hs-lbl">Attendance</div>
       <div class="hs-attendance">${hsAttendanceHTML(s)}</div>
-    </div>
+    </div>` : ``}
+    ${(visible('birthdays') || visible('anniversaries')) ? `
     <div class="hs-sec">
+      ${visible('birthdays') ? `
       <div class="hs-lbl">Birthdays This Week</div>
-      ${hsBirthdaysHTML(s)}
-      <div class="hs-lbl" style="margin-top:8px">Anniversaries This Week</div>
-      ${hsAnnivHTML(s)}
-    </div>
+      ${hsBirthdaysHTML(s)}` : ``}
+      ${visible('anniversaries') ? `
+      <div class="hs-lbl" style="margin-top:${visible('birthdays')?'8px':'0'}">Anniversaries This Week</div>
+      ${hsAnnivHTML(s)}` : ``}
+    </div>` : ``}
+    ${visible('nursery') ? `
     <div class="hs-sec">
       <div class="hs-lbl">Nursery Schedule</div>
       <div class="hs-nursery">${hsNurseryHTML(s)}</div>
       ${s.nurseryNote?`<div class="hs-txt" style="margin-top:5px;font-style:italic;color:var(--muted)">${esc(s.nurseryNote)}</div>`:``}
-    </div>
+    </div>` : ``}
   `;
 }
 
@@ -1008,10 +1100,16 @@ function halfSheetAnnounceHTML(s, logoSrc){
       </div>
       <div class="hs-daterow"><span class="hs-date">${esc(s.date)}</span><span class="hs-contact">Announcements</span></div>
     </div>
+    ${visible('announcements') ? `
     <div class="hs-sec hs-announce-page">
       <div class="hs-lbl">Announcements</div>
       ${hsCardsHTML(s)}
-    </div>
+    </div>` : ``}
+    ${(s.customNotes||[]).some(n=>n.title||n.body) ? `
+    <div class="hs-sec hs-announce-page">
+      <div class="hs-lbl">Additional Notes</div>
+      ${hsCustomNotesHTML(s)}
+    </div>` : ``}
     <div class="hs-sec">
       <div class="hs-lbl">Online Giving</div>
       <div class="hs-txt">Give at <em>${esc(s.church.website)}</em>, or place your tithe in the offering plate or box in the foyer.</div>
@@ -1070,6 +1168,15 @@ function render(){
       </div>`).join("")
     || `<div class="empty-hint">Add announcements on the left.</div>`;
 
+  const customNotesHTML = (s.customNotes||[]).filter(n=>n.title||n.body)
+    .map(n=>`
+      <div class="b-card light">
+        ${n.title?`<div class="c-title">${esc(n.title)}</div>`:``}
+        <div class="c-body">${nl(n.body)}</div>
+      </div>`).join("");
+
+  const weekCols = (visible('thisWeek')?1:0) + (visible('comingSoon')?1:0);
+
   document.getElementById("bulletin").innerHTML = `
     <div class="b-header">
       <div class="b-headmain">
@@ -1119,58 +1226,75 @@ function render(){
           <div class="b-sermon-sub">${esc(s.morning.sermonSpeaker)}${s.morning.sermonScripture?" · "+esc(s.morning.sermonScripture):""}</div>
         </div>
 
+        ${visible('evening') ? `
         <div class="b-service">
           <h2>Evening Service</h2>
           ${eveningHTML}
-        </div>
+        </div>` : ``}
 
-        <div class="b-week-grid">
+        ${weekCols ? `
+        <div class="b-week-grid" style="grid-template-columns:repeat(${weekCols},1fr)">
+          ${visible('thisWeek') ? `
           <div class="b-week">
             <h3>This Week</h3>
             ${weekHTML}
-          </div>
+          </div>` : ``}
+          ${visible('comingSoon') ? `
           <div class="b-week">
             <h3>Coming Soon</h3>
             ${comingHTML}
-          </div>
-        </div>
+          </div>` : ``}
+        </div>` : ``}
       </div>
 
       <!-- RIGHT -->
       <div class="b-right">
+        ${visible('missionary') ? `
         <div class="sec">
           <div class="lbl">Missionary of the Week</div>
           <div class="txt">${orHint(s.missionary,"—")}</div>
-        </div>
+        </div>` : ``}
+        ${visible('shutIn') ? `
         <div class="sec">
           <div class="lbl">Shut-in of the Week</div>
           <div class="txt">${orHint(s.shutIn,"—")}</div>
-        </div>
+        </div>` : ``}
+        ${visible('attendance') ? `
         <div class="sec">
           <div class="lbl">Attendance</div>
           <div class="b-attendance">${attendanceHTML}</div>
-        </div>
+        </div>` : ``}
+        ${(visible('birthdays') || visible('anniversaries')) ? `
         <div class="sec">
+          ${visible('birthdays') ? `
           <div class="lbl">Birthdays This Week</div>
-          ${birthdaysHTML}
-          <div class="lbl" style="margin-top:10px">Anniversaries This Week</div>
-          ${annivHTML}
-        </div>
+          ${birthdaysHTML}` : ``}
+          ${visible('anniversaries') ? `
+          <div class="lbl" style="margin-top:${visible('birthdays')?'10px':'0'}">Anniversaries This Week</div>
+          ${annivHTML}` : ``}
+        </div>` : ``}
+        ${visible('nursery') ? `
         <div class="sec">
           <div class="lbl">Nursery Schedule</div>
           <div class="b-nursery">${nurseryHTML}</div>
           ${s.nurseryNote?`<div class="txt" style="margin-top:5px;font-style:italic;color:var(--muted)">${esc(s.nurseryNote)}</div>`:``}
-        </div>
+        </div>` : ``}
       </div>
 
       <!-- ANNOUNCEMENTS — spans the full width, its own grid row. Keeping
            this out of the narrow right column means it never drags the
            navy/gray sidebars into an awkward stretched-empty carryover
            if it overflows onto a second printed page. -->
+      ${visible('announcements') ? `
       <div class="b-announce">
         <div class="lbl">Announcements</div>
         <div class="b-announce-grid">${cardsHTML}</div>
-      </div>
+      </div>` : ``}
+      ${customNotesHTML ? `
+      <div class="b-announce">
+        <div class="lbl">Additional Notes</div>
+        <div class="b-announce-grid">${customNotesHTML}</div>
+      </div>` : ``}
     </div>
 
     <div class="b-visitor">${nl(s.fixed.visitorNote)}</div>
@@ -1208,7 +1332,8 @@ const LIST_DEFS = {
   anniversaries:{ el:"anniversariesList", kind:"text",   blank:"" },
   attendance:   { el:"attendanceList",    kind:"attend", blank:{date:"",label:"",value:""} },
   nursery:      { el:"nurseryList",       kind:"tx",     blank:{t:"",x:""} },
-  announcements:{ el:"announcementsList", kind:"card",   blank:{title:"",meta:"",body:"",style:"light"} }
+  announcements:{ el:"announcementsList", kind:"card",   blank:{title:"",meta:"",body:"",style:"light"} },
+  customNotes:  { el:"customNotesList",   kind:"note",   blank:{title:"",body:""} }
 };
 
 function renderLists(){
@@ -1271,6 +1396,10 @@ function makeRow(name, def, item, i){
         <label><input type="radio" name="cardstyle_${i}" ${item.style==='light'?'checked':''} onchange="updList('${name}',${i},'style','light')"><span>Light box</span></label>
         <label><input type="radio" name="cardstyle_${i}" ${item.style==='navy'?'checked':''} onchange="updList('${name}',${i},'style','navy')"><span>Navy box</span></label>
       </div>`;
+  } else if (def.kind === "note"){
+    inner = `
+      <input value="${attr(item.title)}" placeholder="Label (e.g. &quot;Parking&quot;)" oninput="updList('${name}',${i},'title',this.value)" style="margin-bottom:7px">
+      <textarea placeholder="Text" oninput="updList('${name}',${i},'body',this.value)">${esc(item.body)}</textarea>`;
   }
 
   wrap.innerHTML = `<span class="drag-handle" title="Drag to reorder">⠿</span>` + inner +
@@ -1337,6 +1466,21 @@ function bindSimpleFields(){
     const v = getPath(path);
     el.value = (v==null?"":v);
     el.addEventListener("input", ()=>{ setPath(path, el.value); render(); autosave(); });
+  });
+}
+
+/* per-section show/hide — a key missing from state.sectionVisibility counts
+   as shown, so older saved bulletins (from before this existed) don't change */
+function visible(key){ return (state.sectionVisibility||{})[key] !== false; }
+function bindSectionToggles(){
+  document.querySelectorAll("[data-section-toggle]").forEach(el=>{
+    const key = el.getAttribute("data-section-toggle");
+    el.checked = visible(key);
+    el.onchange = ()=>{
+      state.sectionVisibility = state.sectionVisibility || {};
+      state.sectionVisibility[key] = el.checked;
+      render(); autosave();
+    };
   });
 }
 
@@ -1426,13 +1570,14 @@ function resetAll(){
   redrawAll(); note("Reset to the sample bulletin.", "");
 }
 
-function redrawAll(){ bindSimpleFields(); renderLists(); showLogoPreview(); render(); }
+function redrawAll(){ bindSimpleFields(); bindSectionToggles(); renderLists(); showLogoPreview(); render(); }
 
 /* ============================================================
    7. INIT
    ============================================================ */
 document.body.setAttribute("data-print-mode", "sheet");
 bindSimpleFields();
+bindSectionToggles();
 renderLists();
 showLogoPreview();
 render();
