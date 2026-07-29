@@ -61,6 +61,15 @@
      link is only as current as the moment it was copied — copy a fresh
      one each week rather than reusing an old text/email thread.
 
+     WYSIWYG PREVIEW: the tabs above the preview pane (setPreviewMode())
+     switch it between the spacious 3-column "Desktop" overview and the
+     ACTUAL print markup (#printSheets / #prayerSheet) shown on screen at
+     real size — Half-Sheet Preview and Prayer Bulletin Preview are
+     exactly what printing produces, not an approximation. This is
+     independent of printMode()/data-print-mode — clicking an actual
+     Print button always prints correctly regardless of which preview
+     tab happens to be showing.
+
      OPTIONAL SECTIONS: most weekly sections (Evening Service, This Week,
      Coming Soon, Missionary, Shut-in, Birthdays, Anniversaries, Attendance,
      Nursery, Announcements) have a "Show" checkbox next to their editor
@@ -279,9 +288,49 @@
 
   /* ---------- PREVIEW PANE ---------- */
   .preview {
-    overflow: auto; padding: 28px; display: flex; justify-content: center; align-items: flex-start;
+    overflow: auto; display: flex; flex-direction: column; align-items: stretch;
   }
-  .preview-inner { }
+  .preview-inner {
+    flex: 1; padding: 28px; display: flex; justify-content: center; align-items: flex-start;
+  }
+
+  /* Lets the preview pane show exactly what will print (the same
+     #printSheets/#prayerSheet markup used by @media print) instead of
+     only the bigger desktop overview — see setPreviewMode() in the
+     script. .preview-inner's children are hidden/shown per tab; the
+     ones NOT selected fall back to their normal off-screen/print-only
+     state (width:0 etc.), unchanged from before this existed. */
+  .preview-toggle {
+    position: sticky; top: 0; z-index: 3;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .ptab {
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    padding: 7px 13px; border-radius: 7px; border: 1px solid var(--line);
+    background: var(--white); color: var(--muted); cursor: pointer;
+  }
+  .ptab:hover { border-color: #C3CEDD; }
+  .ptab.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .ptab-hint { font-size: 11px; color: var(--muted); }
+
+  .preview-page-label {
+    width: 998.4px; max-width: 100%; margin: 0 auto 8px; text-align: center;
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted);
+  }
+  .preview-page-label:not(:first-child) { margin-top: 24px; }
+
+  @media screen {
+    .preview[data-preview-mode="sheet"] .bulletin,
+    .preview[data-preview-mode="prayer"] .bulletin { display: none; }
+    .preview[data-preview-mode="sheet"] .print-sheets {
+      width: auto; height: auto; overflow: visible; display: flex; flex-direction: column;
+    }
+    .preview[data-preview-mode="prayer"] .prayer-sheet {
+      width: auto; height: auto; overflow: visible; display: block;
+    }
+  }
 
   /* ============================================================
      THE BULLETIN — this is what actually prints.
@@ -593,9 +642,9 @@
   @media print {
     body { background: #fff; }
     .app { display: block; height: auto; }
-    .editor, .toolbar, .editor-head { display: none !important; }
+    .editor, .toolbar, .editor-head, .preview-toggle, .preview-page-label { display: none !important; }
     .b-rule { background: var(--gold); } /* flat fill instead of a gradient — cheaper to re-rasterize in print preview */
-    .preview { display: block; padding: 0; overflow: visible; }
+    .preview, .preview-inner { display: block; padding: 0; overflow: visible; }
     .bulletin { width: 100%; box-shadow: none; }
     .empty-hint { display: none; }
 
@@ -625,6 +674,7 @@
      ============================================================ */
   body.view-mode { background: var(--edit-bg); }
   body.view-mode .editor { display: none; }
+  body.view-mode .preview-toggle { display: none; } /* nothing to toggle on a read-only shared link */
   body.view-mode .app { display: block; height: auto; }
   body.view-mode .preview { display: block; padding: 24px 14px; overflow: visible; }
   body.view-mode .print-sheets { display: none !important; }
@@ -956,11 +1006,19 @@
 
   <!-- ==================== PREVIEW ==================== -->
   <main class="preview">
+    <div class="preview-toggle">
+      <button class="ptab" data-preview-tab="desktop" onclick="setPreviewMode('desktop')">Desktop</button>
+      <button class="ptab" data-preview-tab="sheet" onclick="setPreviewMode('sheet')">Half-Sheet Preview</button>
+      <button class="ptab" data-preview-tab="prayer" onclick="setPreviewMode('prayer')">Prayer Bulletin Preview</button>
+      <span class="ptab-hint">This is exactly what will print — the desktop view is just a bigger, easier-to-read overview while editing.</span>
+    </div>
     <div class="preview-inner">
       <div class="bulletin" id="bulletin"><!-- rendered by JS --></div>
-      <!-- print-only: two half-sheets per page, mirrored, cut in half after printing -->
+      <!-- two half-sheets per page, mirrored, cut in half after printing.
+           Hidden on screen except in Half-Sheet Preview mode (see the
+           SHARED VIEW... actually see the PREVIEW TOGGLE CSS below). -->
       <div class="print-sheets" id="printSheets"><!-- rendered by JS --></div>
-      <!-- print-only: the separate one-page Prayer Bulletin document -->
+      <!-- the separate one-page Prayer Bulletin document — same idea -->
       <div class="prayer-sheet" id="prayerSheet"><!-- rendered by JS --></div>
     </div>
   </main>
@@ -1548,14 +1606,17 @@ function render(){
   const middleHTML = halfSheetMiddleHTML(s);
   const announceHTML = halfSheetAnnounceHTML(s);
   document.getElementById("printSheets").innerHTML = `
+    <div class="preview-page-label">Page 1 of 3 — front (services)</div>
     <div class="print-page">
       <div class="half-sheet">${frontHTML}</div>
       <div class="half-sheet">${frontHTML}</div>
     </div>
+    <div class="preview-page-label">Page 2 of 3 — middle (people, attendance, nursery)</div>
     <div class="print-page">
       <div class="half-sheet">${middleHTML}</div>
       <div class="half-sheet">${middleHTML}</div>
     </div>
+    <div class="preview-page-label">Page 3 of 3 — announcements</div>
     <div class="print-page">
       <div class="half-sheet">${announceHTML}</div>
       <div class="half-sheet">${announceHTML}</div>
@@ -1844,6 +1905,19 @@ function resetAll(){
 
 function redrawAll(){ bindSimpleFields(); bindSectionToggles(); renderLists(); showLogoPreview(); render(); }
 
+/* Desktop / Half-Sheet Preview / Prayer Bulletin Preview tabs above the
+   preview pane — purely a display toggle, independent of printMode()
+   (clicking an actual Print button always prints the right thing
+   regardless of which tab is showing here). */
+let previewMode = "desktop";
+function setPreviewMode(mode){
+  previewMode = mode;
+  document.querySelector(".preview").setAttribute("data-preview-mode", mode);
+  document.querySelectorAll(".ptab").forEach(b=>{
+    b.classList.toggle("active", b.dataset.previewTab === mode);
+  });
+}
+
 /* ============================================================
    7. SHARE A LINK — no backend, GitHub Pages is static. The link
    itself carries the bulletin (gzip + base64url in the URL hash, so
@@ -1909,6 +1983,7 @@ async function loadSharedView(){
 (async function init(){
   await loadSharedView();
   document.body.setAttribute("data-print-mode", "sheet");
+  setPreviewMode("desktop");
   bindSimpleFields();
   bindSectionToggles();
   renderLists();
