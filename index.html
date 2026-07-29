@@ -49,8 +49,17 @@
          with the bulletin above; its own fields (Church Family, Today,
          Feature Announcement, Prayer Focus, Physical Concerns, Our
          Country) live in their own "Prayer Bulletin" editor group.
-       - "Phone Layout" (mode "phone") — single column, full portrait
-         page, for texting/emailing. Page count doesn't matter here.
+     SHARING A LINK INSTEAD OF PRINTING: each of the two documents above
+     has its own "Copy Link" button (copyLink() near loadSharedView()).
+     It compresses the current state into the URL itself (gzip +
+     base64url, no backend — see encodeStateToHash()/decodeHashToState())
+     and copies a link like index.html#view=sheet&d=.... Opening that
+     link renders the SAME .bulletin/.prayer-page markup the editor
+     already builds, just reflowed to one column (see the "SHARED VIEW"
+     CSS below) instead of showing the editor — loadSharedView() detects
+     the #view= hash on load and switches into this read-only mode. A
+     link is only as current as the moment it was copied — copy a fresh
+     one each week rather than reusing an old text/email thread.
 
      OPTIONAL SECTIONS: most weekly sections (Evening Service, This Week,
      Coming Soon, Missionary, Shut-in, Birthdays, Anniversaries, Attendance,
@@ -554,9 +563,9 @@
   /* ============================================================
      PRINT — the sheet only. Everything else vanishes.
      @page sizing is set dynamically by printMode() in the script
-     below (landscape letter split into two half-sheets for printing,
-     or portrait single-column for phones) via the #pageSetupStyle
-     tag in <head>.
+     below (landscape letter split into two half-sheets, or portrait
+     full-page for the Prayer Bulletin) via the #pageSetupStyle tag
+     in <head>.
      ============================================================ */
   @media print {
     body { background: #fff; }
@@ -579,44 +588,70 @@
     body[data-print-mode="prayer"] .bulletin { display: none; }
     body[data-print-mode="prayer"] .prayer-sheet { width: auto; height: auto; overflow: visible; display: block; }
 
-    /* ---- phone layout: everything in one column, reordered so the
-       week's news reads before the fixed weekly-rhythm info ---- */
-    body[data-print-mode="phone"] .b-body { grid-template-columns: 1fr; }
-    body[data-print-mode="phone"] .b-main { order: 1; border-right: none; }
-    body[data-print-mode="phone"] .b-announce { order: 2; grid-column: 1; border-top: none; }
-    body[data-print-mode="phone"] .b-announce-grid { grid-template-columns: 1fr; }
-    body[data-print-mode="phone"] .b-right { order: 3; }
-    body[data-print-mode="phone"] .b-left { order: 4; }
-    body[data-print-mode="phone"] .b-week-grid { grid-template-columns: 1fr; gap: 14px; }
-    body[data-print-mode="phone"] .b-header { grid-template-columns: 1fr; }
-    body[data-print-mode="phone"] .b-logo { justify-content: flex-start; margin-top: 12px; }
-    body[data-print-mode="phone"] .b-logo img { height: 56px; }
-    /* a phone screen shows the whole page at once, much smaller in the hand
-       than a sheet of paper held at arm's length — every size below is
-       bumped well past the print minimum so it reads comfortably at that
-       smaller effective size, not just technically "big enough" on paper */
-    body[data-print-mode="phone"] .b-church { font-size: 32px; }
-    body[data-print-mode="phone"] .b-tagline { font-size: 13px; }
-    body[data-print-mode="phone"] .b-pastor { font-size: 16px; }
-    body[data-print-mode="phone"] .b-date { font-size: 22px; padding: 6px 16px; }
-    body[data-print-mode="phone"] .b-contact { font-size: 15px; }
-    body[data-print-mode="phone"] .lbl { font-size: 14px; }
-    body[data-print-mode="phone"] .b-svc .name,
-    body[data-print-mode="phone"] .b-svc .time { font-size: 17px; }
-    body[data-print-mode="phone"] .b-left .note { font-size: 15px; }
-    body[data-print-mode="phone"] .b-line,
-    body[data-print-mode="phone"] .txt,
-    body[data-print-mode="phone"] .c-body { font-size: 17px; }
-    body[data-print-mode="phone"] .b-sermon { font-size: 22px; }
-    body[data-print-mode="phone"] .b-sermon-sub { font-size: 16px; }
-    body[data-print-mode="phone"] .b-wk-row { font-size: 17px; }
-    body[data-print-mode="phone"] .b-people-item { font-size: 17px; }
-    body[data-print-mode="phone"] .b-nursery,
-    body[data-print-mode="phone"] .b-attendance { font-size: 15px; }
-    body[data-print-mode="phone"] .c-title { font-size: 19px; }
-    body[data-print-mode="phone"] .c-meta { font-size: 15px; }
-    body[data-print-mode="phone"] .b-visitor { font-size: 15px; }
   }
+
+  /* ============================================================
+     SHARED VIEW — the read-only, responsive page a "Copy Link"
+     button opens (see copyLink() / loadSharedViewFromHash() in the
+     script). Not print — a normal on-screen page, since these links
+     are mostly opened on a phone. Reuses the same .bulletin /
+     .prayer-page markup the editor already builds, just reflowed to
+     one column and enlarged — the same idea the old phone-print
+     layout used, since most people who'd tap a texted link are
+     reading it on a phone.
+     ============================================================ */
+  body.view-mode { background: var(--edit-bg); }
+  body.view-mode .editor { display: none; }
+  body.view-mode .app { display: block; height: auto; }
+  body.view-mode .preview { display: block; padding: 24px 14px; overflow: visible; }
+  body.view-mode .print-sheets { display: none !important; }
+  body.view-mode .bulletin, body.view-mode .prayer-page { width: 100%; max-width: 640px; margin: 0 auto; }
+  body.view-mode:not(.view-prayer) .prayer-sheet { display: none !important; }
+  body.view-prayer .bulletin { display: none !important; }
+  body.view-prayer .prayer-sheet { width: auto; height: auto; overflow: visible; display: block; }
+
+  body.view-sheet .b-body { grid-template-columns: 1fr; }
+  body.view-sheet .b-main { order: 1; border-right: none; }
+  body.view-sheet .b-announce { order: 2; grid-column: 1; border-top: none; }
+  body.view-sheet .b-announce-grid { grid-template-columns: 1fr; }
+  body.view-sheet .b-right { order: 3; }
+  body.view-sheet .b-left { order: 4; }
+  body.view-sheet .b-week-grid { grid-template-columns: 1fr !important; gap: 14px; }
+  body.view-sheet .b-header { grid-template-columns: 1fr; }
+  body.view-sheet .b-logo { justify-content: flex-start; margin-top: 12px; }
+  body.view-sheet .b-logo img { height: 56px; }
+  /* a phone shows the whole thing at once, much smaller in the hand than a
+     sheet of paper at arm's length — sizes below are bumped well past the
+     print minimum so it reads comfortably at that smaller effective size */
+  body.view-sheet .b-church { font-size: 30px; }
+  body.view-sheet .b-tagline { font-size: 12px; }
+  body.view-sheet .b-pastor { font-size: 15px; }
+  body.view-sheet .b-date { font-size: 20px; padding: 6px 16px; }
+  body.view-sheet .b-contact { font-size: 14px; }
+  body.view-sheet .lbl { font-size: 13px; }
+  body.view-sheet .b-svc .name,
+  body.view-sheet .b-svc .time { font-size: 16px; }
+  body.view-sheet .b-left .note { font-size: 14px; }
+  body.view-sheet .b-line,
+  body.view-sheet .txt,
+  body.view-sheet .c-body { font-size: 16px; }
+  body.view-sheet .b-sermon { font-size: 20px; }
+  body.view-sheet .b-sermon-sub { font-size: 15px; }
+  body.view-sheet .b-wk-row { font-size: 16px; }
+  body.view-sheet .b-people-item { font-size: 16px; }
+  body.view-sheet .b-nursery,
+  body.view-sheet .b-attendance { font-size: 14px; }
+  body.view-sheet .c-title { font-size: 18px; }
+  body.view-sheet .c-meta { font-size: 14px; }
+  body.view-sheet .b-visitor { font-size: 14px; }
+
+  body.view-prayer .pb-body { grid-template-columns: 1fr; }
+  body.view-prayer .pb-church { font-size: 22px; }
+  body.view-prayer .pb-txt, body.view-prayer .pb-list-item { font-size: 14px; }
+  body.view-prayer .pb-lbl { font-size: 12.5px; }
+  body.view-prayer .pb-feature-title { font-size: 16px; }
+  body.view-prayer .pb-feature-body { font-size: 14px; }
+  body.view-prayer .pb-contact { font-size: 12.5px; }
 
   /* smaller screens: stack editor above preview */
   @media (max-width: 900px) {
@@ -627,7 +662,7 @@
 </style>
 <!-- The page's physical size/orientation is rewritten by printMode() right
      before each print, so the same sheet can go out landscape (half-sheet
-     printer copies) or portrait (phone-sized single column). -->
+     printer copies) or portrait (the full-page Prayer Bulletin). -->
 <style id="pageSetupStyle">
   @page { size: letter landscape; margin: 0.3in; }
 </style>
@@ -639,13 +674,14 @@
   <aside class="editor">
     <div class="editor-head">
       <h1>Bulletin Builder</h1>
-      <p>Edit the fields below — the bulletin updates as you type. When it looks right, use <b>Half-Sheet</b> to print two half-sheet bulletins per double-sided sheet (cut down the middle), <b>Prayer Bulletin</b> for that separate one-page document, or <b>Phone Layout</b> for something you'll text or email. Your work saves on this computer automatically.</p>
+      <p>Edit the fields below — the bulletin updates as you type. When it looks right, use <b>Half-Sheet</b> to print two half-sheet bulletins per double-sided sheet (cut down the middle), or <b>Prayer Bulletin</b> for that separate one-page document. <b>Copy Link</b> next to either one is for texting or emailing instead. Your work saves on this computer automatically.</p>
     </div>
 
     <div class="toolbar">
       <button class="btn gold" onclick="printMode('sheet')" title="Two portrait half-sheets per side, double-sided — cut down the middle for two complete bulletins">🖨 Print — Half-Sheet Bulletin</button>
+      <button class="btn small" onclick="copyLink('sheet')" title="Copy a link that opens a clean, phone-friendly view of this bulletin — for texting or emailing">🔗 Copy Link</button>
       <button class="btn gold" onclick="printMode('prayer')" title="One full portrait page — the separate Prayer Bulletin document">🙏 Print — Prayer Bulletin</button>
-      <button class="btn gold" onclick="printMode('phone')" title="1-column, portrait — best for texting or emailing to a phone">📱 Save PDF — Phone Layout</button>
+      <button class="btn small" onclick="copyLink('prayer')" title="Copy a link that opens a clean, phone-friendly view of the Prayer Bulletin — for texting or emailing">🔗 Copy Link</button>
       <button class="btn primary" onclick="saveNow(true)">💾 Save</button>
       <button class="btn small" onclick="startFresh()">Start next week</button>
       <button class="btn small ghost" onclick="resetAll()">Reset everything</button>
@@ -886,9 +922,9 @@
 
     <div style="padding:16px 20px; font-size:11.5px; color:var(--muted); line-height:1.65;">
       <b style="color:var(--navy)">Best browser for printing/saving:</b> Use <b>Chrome</b> or <b>Edge</b> — both render this page's colors and layout correctly and reliably. <b>Safari</b> has known quirks with pages like this one (it can miss the page orientation, add an unexpected margin, or be slow enough that it looks frozen while it works out the colors) — if Safari is all you have, give it a bit before assuming it's stuck, and double-check the result.<br><br>
-      <b style="color:var(--navy)">Which button to use:</b> <b>Print — Half-Sheet Bulletin</b> makes a 3-page document — each page is two identical portrait half-sheets side by side (page 1 = service info, page 2 = people/attendance/nursery, page 3 = announcements). Print it double-sided: the first two pages become the front/back of one sheet, and the third prints alone on a second sheet. Cut every printed sheet down the middle and you get two complete small bulletins per sheet of paper. <b>Save PDF — Phone Layout</b> reflows everything into one column, full-page portrait — best for texting or emailing to someone who'll read it on their phone.<br><br>
+      <b style="color:var(--navy)">Which button to use:</b> <b>Print — Half-Sheet Bulletin</b> makes a 3-page document — each page is two identical portrait half-sheets side by side (page 1 = service info, page 2 = people/attendance/nursery, page 3 = announcements). Print it double-sided: the first two pages become the front/back of one sheet, and the third prints alone on a second sheet. Cut every printed sheet down the middle and you get two complete small bulletins per sheet of paper. <b>Print — Prayer Bulletin</b> is the separate one-page prayer document, printed the normal way (no cutting). <b>Copy Link</b> next to either one copies a link to a clean, phone-friendly page showing that bulletin — paste it into a text or email instead of attaching a file.<br><br>
       <b style="color:var(--navy)">To print the half-sheets:</b> click <b>Print — Half-Sheet Bulletin</b>, choose <b>Letter</b> paper, and turn on <b>double-sided printing</b> in the print window (usually "Two-Sided" or "Duplex," flipping on the long edge). It's always exactly 3 pages — if it's ever cutting onto a 4th, something's overflowing and worth a look rather than just printing anyway.<br><br>
-      <b style="color:var(--navy)">To email or text it:</b> in the print window, set the destination to <b>Save as PDF</b> and save the file, then attach it. The PDF keeps the design perfectly for everyone who opens it.<br><br>
+      <b style="color:var(--navy)">To email or text it:</b> click <b>Copy Link</b> next to the bulletin you want to share, then paste the link into the text or email — no file to attach, and it opens as a clean page on whatever they're reading it on. The link itself carries the bulletin's content, so it keeps working even after you've moved on to next week's — copy a fresh one each week.<br><br>
       <b style="color:#B26A1F">If it prints in portrait, or with a bigger-than-expected white border:</b> some browsers (Safari especially) don't switch to landscape on their own. In the print window, set <b>Orientation</b> to <b>Landscape</b>, <b>Scale</b> to <b>100%</b>, and leave <b>Margins</b> on <b>Default</b> (not "None" — the page already carries its own safe margin, and forcing "None" can make a physical printer clip content it can't reach). Also turn on <b>“Background graphics”</b> (or “Print backgrounds”) if the navy and gold print white.<br><br>
       <b style="color:#B26A1F">If a physical printout still looks clipped at the edge:</b> that's your printer's own hardware limit, not this page — every printer has a strip near the edge it physically cannot print into, and it varies by model. This tool's margin is set to clear that strip for the vast majority of printers. If you want truly edge-to-edge output, check the print dialog for a <b>“Borderless”</b> or <b>“Full bleed”</b> paper option — only your printer's own driver can turn that on.<br><br>
       The church logo is already built in. You only need the <b>Logo</b> box under “Church info” if you ever want to swap it.
@@ -1707,7 +1743,6 @@ function clearLogo(){ state.church.logo = ""; showLogoPreview(); render(); autos
    ============================================================ */
 const PAGE_SETUP = {
   sheet: "@page { size: letter landscape; margin: 0.3in; }",   // landscape letter, split into 2 portrait half-sheets, 3 pages total. 0.3in gives real safety margin for printers whose unprintable strip runs wider than expected, and matches the gap between the two half-sheets (see .print-page in the CSS) so the border is equal on all 4 sides once cut
-  phone: "@page { size: letter portrait; margin: 0.45in; }", // portrait — matches the single-column phone layout
   prayer: "@page { size: letter portrait; margin: 0.3in; }" // portrait, full page — matches .prayer-page in the CSS
 };
 
@@ -1756,7 +1791,7 @@ function printMode(mode){
   window.print();
 }
 // if the print dialog is dismissed (or a plain Cmd/Ctrl+P is used afterward),
-// fall back to the half-sheet layout rather than staying stuck in phone mode
+// fall back to the half-sheet layout rather than staying stuck in prayer mode
 window.addEventListener("afterprint", ()=>{
   document.body.setAttribute("data-print-mode", "sheet");
   document.getElementById("pageSetupStyle").textContent = PAGE_SETUP.sheet;
@@ -1792,17 +1827,76 @@ function resetAll(){
 function redrawAll(){ bindSimpleFields(); bindSectionToggles(); renderLists(); showLogoPreview(); render(); }
 
 /* ============================================================
-   7. INIT
+   7. SHARE A LINK — no backend, GitHub Pages is static. The link
+   itself carries the bulletin (gzip + base64url in the URL hash, so
+   it's never sent to a server, even GitHub's). loadSharedView() is
+   what a recipient's browser runs when they open that link.
    ============================================================ */
-document.body.setAttribute("data-print-mode", "sheet");
-bindSimpleFields();
-bindSectionToggles();
-renderLists();
-showLogoPreview();
-render();
+function toBase64Url(bytes){
+  let binary = "";
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function fromBase64Url(b64){
+  const binary = atob(b64.replace(/-/g,"+").replace(/_/g,"/"));
+  const bytes = new Uint8Array(binary.length);
+  for (let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+async function encodeStateToHash(){
+  const bytes = new TextEncoder().encode(JSON.stringify(state));
+  const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"));
+  const compressed = new Uint8Array(await new Response(stream).arrayBuffer());
+  return toBase64Url(compressed);
+}
+async function decodeHashToState(b64){
+  const stream = new Blob([fromBase64Url(b64)]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return JSON.parse(await new Response(stream).text());
+}
 
-// re-bind simple fields after any full redraw (values may have changed)
-function bindSimpleFields2(){}
+async function copyLink(which){
+  try {
+    const d = await encodeStateToHash();
+    const url = `${location.origin}${location.pathname}#view=${which}&d=${d}`;
+    await navigator.clipboard.writeText(url);
+    note(`Link copied — paste it into a text or email. (${which==="prayer"?"Prayer Bulletin":"Bulletin"})`, "ok");
+  } catch(e){
+    note("Couldn't copy a link on this browser — try Chrome or Edge.", "warn");
+  }
+}
+
+/* True if this load is someone opening a shared link rather than the
+   office editing it. Decodes straight from the URL (never touches
+   localStorage) and switches to a read-only, single-column view. */
+async function loadSharedView(){
+  const m = location.hash.match(/^#view=(sheet|prayer)&d=(.+)$/);
+  if (!m) return false;
+  const [, which, data] = m;
+  // hide the editor immediately, before the (async) decode below even
+  // starts — otherwise it can flash into view for a moment on load
+  document.body.classList.add("view-mode", which === "prayer" ? "view-prayer" : "view-sheet");
+  try {
+    const shared = await decodeHashToState(data);
+    state = Object.assign(deepClone(DEFAULTS), shared);
+  } catch(e){
+    document.body.innerHTML = '<div style="max-width:480px;margin:15vh auto;padding:24px;font-family:system-ui,sans-serif;color:#5A6B7E;text-align:center;line-height:1.6">This link looks broken or incomplete — ask whoever sent it to copy a fresh one.</div>';
+    return true;
+  }
+  return true;
+}
+
+/* ============================================================
+   8. INIT
+   ============================================================ */
+(async function init(){
+  await loadSharedView();
+  document.body.setAttribute("data-print-mode", "sheet");
+  bindSimpleFields();
+  bindSectionToggles();
+  renderLists();
+  showLogoPreview();
+  render();
+})();
 </script>
 </body>
 </html>
