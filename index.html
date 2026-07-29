@@ -315,7 +315,7 @@
   .ptab-hint { font-size: 11px; color: var(--muted); }
 
   .preview-page-label {
-    width: 998.4px; max-width: 100%; margin: 0 auto 8px; text-align: center;
+    width: 960px; max-width: 100%; margin: 0 auto 8px; text-align: center;
     font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
     color: var(--muted);
   }
@@ -330,6 +330,20 @@
     .preview[data-preview-mode="prayer"] .prayer-sheet {
       width: auto; height: auto; overflow: visible; display: block;
     }
+    /* Screen-only: shade in the paper's margin around the printable
+       content so this preview doesn't read as edge-to-edge — a browser
+       has no way to draw @page margin on screen otherwise, since it's
+       a print-time-only concept, and content sitting flush against the
+       window edge here previously looked like a missing margin even
+       though the real print always had one. Padding eats into these
+       elements' own fixed width, so this is a close screen approximation
+       of the true printed proportions, not a pixel-exact one. */
+    .preview[data-preview-mode="sheet"] .print-page,
+    .preview[data-preview-mode="prayer"] .prayer-page {
+      background: #DCE3EC; padding: 20px; border-radius: 4px;
+    }
+    .preview[data-preview-mode="sheet"] .half-sheet,
+    .preview[data-preview-mode="prayer"] .pb-body { background: var(--white); }
   }
 
   /* ============================================================
@@ -494,7 +508,7 @@
   /* Kept off-screen (not display:none) so its real height can be measured
      on every render() — that's how the overflow warning near the print
      button knows whether content will spill onto an extra page. Width is
-     fixed to the actual printable width (11in page − 2×0.3in margin, at
+     fixed to the actual printable width (11in page − 2×0.5in margin, at
      96dpi — see PAGE_SETUP.sheet in the script) so the measurement matches
      print exactly regardless of the browser window's own size. This same
      fixed width is also what actually prints (see margin: 0 auto below)
@@ -504,12 +518,17 @@
      matching what actually printed, which could silently overflow onto
      extra pages with no warning. Centering a fixed, known width instead
      means the fit-check is always measuring the real thing, and any
-     leftover slack still splits evenly as an equal margin either way. */
+     leftover slack still splits evenly as an equal margin either way.
+     0.5in (not the tighter 0.3in this used to be) is a deliberately
+     generous, conservative margin — real insurance against a printer
+     whose hardware unprintable strip runs wider than a slimmer margin
+     would clear, since no CSS margin can force a printer to physically
+     put ink somewhere it can't reach. */
   .print-sheets { width: 0; height: 0; overflow: hidden; }
-  .print-page { position: relative; display: flex; align-items: flex-start; width: 998.4px; margin: 0 auto; }
+  .print-page { position: relative; display: flex; align-items: flex-start; width: 960px; margin: 0 auto; }
   .print-page .half-sheet { flex: 1 1 0; min-width: 0; }
-  .print-page .half-sheet:first-child { margin-right: 14.4px; }
-  .print-page .half-sheet:last-child { margin-left: 14.4px; }
+  .print-page .half-sheet:first-child { margin-right: 24px; }
+  .print-page .half-sheet:last-child { margin-left: 24px; }
   .print-page::after {
     /* dashed cut-guide, centered in the gap — a visual aid only, not
        something the content relies on for safe margins */
@@ -537,7 +556,7 @@
   .hs-date { font-family: var(--font-display); font-size: 13px; font-weight: 600; background: var(--gold); color: #fff; padding: 3px 9px; border-radius: 4px; }
   .hs-contact { font-size: 12px; color: rgba(255,255,255,.8); }
 
-  .hs-sec { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line); page-break-inside: avoid; }
+  .hs-sec { margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid var(--line); page-break-inside: avoid; }
   .hs-sec:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
   .hs-lbl { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--navy); margin-bottom: 3px; }
   .hs-line { font-size: 13px; margin-bottom: 3px; }
@@ -603,7 +622,7 @@
      ============================================================ */
   .prayer-sheet { width: 0; height: 0; overflow: hidden; }
   .prayer-page {
-    width: 758.4px; /* 8.5in letter width − 2×0.3in margin, 96dpi — matches PAGE_SETUP.prayer. Same fixed-and-centered reasoning as .print-page above. */
+    width: 720px; /* 8.5in letter width − 2×0.5in margin, 96dpi — matches PAGE_SETUP.prayer. Same fixed-and-centered reasoning as .print-page above. */
     margin: 0 auto;
     background: var(--white); color: var(--ink);
   }
@@ -737,7 +756,7 @@
      before each print, so the same sheet can go out landscape (half-sheet
      printer copies) or portrait (the full-page Prayer Bulletin). -->
 <style id="pageSetupStyle">
-  @page { size: letter landscape; margin: 0.3in; }
+  @page { size: letter landscape; margin: 0.5in; }
 </style>
 </head>
 <body>
@@ -996,10 +1015,11 @@
     <div style="padding:16px 20px; font-size:11.5px; color:var(--muted); line-height:1.65;">
       <b style="color:var(--navy)">Best browser for printing/saving:</b> Use <b>Chrome</b> or <b>Edge</b> — both render this page's colors and layout correctly and reliably. <b>Safari</b> has known quirks with pages like this one (it can miss the page orientation, add an unexpected margin, or be slow enough that it looks frozen while it works out the colors) — if Safari is all you have, give it a bit before assuming it's stuck, and double-check the result.<br><br>
       <b style="color:var(--navy)">Which button to use:</b> <b>Print — Half-Sheet Bulletin</b> makes a 3-page document — each page is two identical portrait half-sheets side by side (page 1 = service info, page 2 = people/attendance/nursery, page 3 = announcements). Print it double-sided: the first two pages become the front/back of one sheet, and the third prints alone on a second sheet. Cut every printed sheet down the middle and you get two complete small bulletins per sheet of paper. <b>Print — Prayer Bulletin</b> is the separate one-page prayer document, printed the normal way (no cutting). <b>Copy Link</b> next to either one copies a link to a clean, phone-friendly page showing that bulletin — paste it into a text or email instead of attaching a file.<br><br>
-      <b style="color:var(--navy)">To print the half-sheets:</b> click <b>Print — Half-Sheet Bulletin</b>, choose <b>Letter</b> paper, and turn on <b>double-sided printing</b> in the print window (usually "Two-Sided" or "Duplex," flipping on the long edge). It's always exactly 3 pages — if it's ever cutting onto a 4th, something's overflowing and worth a look rather than just printing anyway.<br><br>
+      <b style="color:#2F7D46">Most reliable way to print — save as PDF first:</b> in the print window, set the destination to <b>Save as PDF</b> instead of a printer, save the file, then open that PDF and print <i>it</i> (e.g. in Preview on a Mac) rather than printing straight from this page. Direct printing and Save-as-PDF can render fonts and spacing slightly differently between browsers — the saved PDF has been the most consistent, correctly-rendered result in testing, so treat it as the source of truth and print from there.<br><br>
+      <b style="color:var(--navy)">To print the half-sheets:</b> click <b>Print — Half-Sheet Bulletin</b>, save as PDF, then print that PDF on <b>Letter</b> paper with <b>double-sided printing</b> turned on (usually "Two-Sided" or "Duplex," flipping on the long edge). It's always exactly 3 pages — if it's ever cutting onto a 4th, something's overflowing and worth a look rather than just printing anyway.<br><br>
       <b style="color:var(--navy)">To email or text it:</b> click <b>Copy Link</b> next to the bulletin you want to share, then paste the link into the text or email — no file to attach, and it opens as a clean page on whatever they're reading it on. The link itself carries the bulletin's content, so it keeps working even after you've moved on to next week's — copy a fresh one each week.<br><br>
       <b style="color:#B26A1F">If it prints in portrait, or with a bigger-than-expected white border:</b> some browsers (Safari especially) don't switch to landscape on their own. In the print window, set <b>Orientation</b> to <b>Landscape</b>, <b>Scale</b> to <b>100%</b>, and leave <b>Margins</b> on <b>Default</b> (not "None" — the page already carries its own safe margin, and forcing "None" can make a physical printer clip content it can't reach). Also turn on <b>“Background graphics”</b> (or “Print backgrounds”) if the navy and gold print white.<br><br>
-      <b style="color:#B26A1F">If a physical printout still looks clipped at the edge:</b> that's your printer's own hardware limit, not this page — every printer has a strip near the edge it physically cannot print into, and it varies by model. This tool's margin is set to clear that strip for the vast majority of printers. If you want truly edge-to-edge output, check the print dialog for a <b>“Borderless”</b> or <b>“Full bleed”</b> paper option — only your printer's own driver can turn that on.<br><br>
+      <b style="color:#B26A1F">If a physical printout still looks clipped at the edge:</b> first try printing from a saved PDF instead of printing directly (see above) — that alone has fixed this before. If it's still clipped, that's your printer's own hardware limit, not this page — every printer has a strip near the edge it physically cannot print into, and it varies by model. This tool leaves a deliberately generous 0.5in margin to clear that strip on the vast majority of printers. If you want truly edge-to-edge output, check the print dialog for a <b>“Borderless”</b> or <b>“Full bleed”</b> paper option — only your printer's own driver can turn that on.<br><br>
       The church logo is already built in. You only need the <b>Logo</b> box under “Church info” if you ever want to swap it.
     </div>
   </aside>
@@ -1010,7 +1030,7 @@
       <button class="ptab" data-preview-tab="desktop" onclick="setPreviewMode('desktop')">Desktop</button>
       <button class="ptab" data-preview-tab="sheet" onclick="setPreviewMode('sheet')">Half-Sheet Preview</button>
       <button class="ptab" data-preview-tab="prayer" onclick="setPreviewMode('prayer')">Prayer Bulletin Preview</button>
-      <span class="ptab-hint">This is exactly what will print — the desktop view is just a bigger, easier-to-read overview while editing.</span>
+      <span class="ptab-hint">The shaded border on these two is the printer's margin — the desktop view is just a bigger, easier-to-read overview while editing.</span>
     </div>
     <div class="preview-inner">
       <div class="bulletin" id="bulletin"><!-- rendered by JS --></div>
@@ -1816,19 +1836,19 @@ function clearLogo(){ state.church.logo = ""; showLogoPreview(); render(); autos
    6. ACTIONS
    ============================================================ */
 const PAGE_SETUP = {
-  sheet: "@page { size: letter landscape; margin: 0.3in; }",   // landscape letter, split into 2 portrait half-sheets, 3 pages total. 0.3in gives real safety margin for printers whose unprintable strip runs wider than expected, and matches the gap between the two half-sheets (see .print-page in the CSS) so the border is equal on all 4 sides once cut
-  prayer: "@page { size: letter portrait; margin: 0.3in; }" // portrait, full page — matches .prayer-page in the CSS
+  sheet: "@page { size: letter landscape; margin: 0.5in; }",   // landscape letter, split into 2 portrait half-sheets, 3 pages total. 0.5in is a deliberately generous margin — real insurance against a printer's hardware unprintable strip, which no CSS margin can override — and matches the gap between the two half-sheets (see .print-page in the CSS) so the border is equal on all 4 sides once cut
+  prayer: "@page { size: letter portrait; margin: 0.5in; }" // portrait, full page — matches .prayer-page in the CSS
 };
 
 /* How much a half-sheet can hold before it spills onto an extra printed page —
-   derived from the same landscape letter + 0.3in margin as PAGE_SETUP.sheet
+   derived from the same landscape letter + 0.5in margin as PAGE_SETUP.sheet
    above, at the standard 96dpi browsers use for CSS pixels. Keep these two
    in sync if the page size or margin ever changes. */
-const HS_PAGE_HEIGHT_PX = (8.5 - 2*0.3) * 96; // 7.9in of usable height
+const HS_PAGE_HEIGHT_PX = (8.5 - 2*0.5) * 96; // 7.5in of usable height
 
 /* Same idea as HS_PAGE_HEIGHT_PX but for the Prayer Bulletin's one full
-   portrait page — derived from PAGE_SETUP.prayer's letter-portrait + 0.3in. */
-const PB_PAGE_HEIGHT_PX = (11 - 2*0.3) * 96; // 10.4in of usable height
+   portrait page — derived from PAGE_SETUP.prayer's letter-portrait + 0.5in. */
+const PB_PAGE_HEIGHT_PX = (11 - 2*0.5) * 96; // 10in of usable height
 
 function checkPageFit(){
   const el = document.getElementById("fitWarning");
