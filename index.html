@@ -25,7 +25,7 @@
      TO DEPLOY A CHANGE: edit this file, then from its folder:
          git add index.html && git commit -m "..." && git push
 
-     TWO PRINT OUTPUTS (see printMode() near the bottom of the script):
+     THREE PRINT OUTPUTS (see printMode() near the bottom of the script):
        - "Half-Sheet Bulletin" (mode "sheet") — the real production
          format: 3 physical pages (front = services, middle = people/
          info, third = announcements), each showing the SAME half-sheet
@@ -40,6 +40,15 @@
          printed edges read as a deliberate border rather than a
          too-close-to-the-edge accident on printers with a wider
          unprintable strip than expected.
+       - "Prayer Bulletin" (mode "prayer") — a completely separate
+         document (prayerBulletinHTML()): one full portrait page, not
+         mirrored/halved, no cut-in-half workflow. Budgeted for 1 page
+         with its own warning (PB_PAGE_HEIGHT_PX / checkPrayerFit()) if
+         that week's prayer list runs long. Shares missionary, shutIn,
+         comingSoon, fixed service times, church info, and logo/theme
+         with the bulletin above; its own fields (Church Family, Today,
+         Feature Announcement, Prayer Focus, Physical Concerns, Our
+         Country) live in their own "Prayer Bulletin" editor group.
        - "Phone Layout" (mode "phone") — single column, full portrait
          page, for texting/emailing. Page count doesn't matter here.
 
@@ -503,6 +512,46 @@
   .hs-footer { margin-top: 4px; background: var(--navy-mid); color: rgba(255,255,255,.92); font-size: 12px; text-align: center; padding: 6px 20px; margin-left: -20px; margin-right: -20px; }
 
   /* ============================================================
+     PRAYER BULLETIN — a separate document from the half-sheet/phone
+     bulletin above (see prayerBulletinHTML() and printMode("prayer")
+     in the script). One full portrait page, not mirrored/halved —
+     there's no cut-in-half workflow for this one. Hidden on screen;
+     only shown for Print — Prayer Bulletin. Styled to match the rest
+     of this tool's look (navy/gold theme, same fonts) rather than
+     reproducing any specific existing paper prayer bulletin's exact
+     layout pixel-for-pixel.
+     ============================================================ */
+  .prayer-sheet { width: 0; height: 0; overflow: hidden; }
+  .prayer-page {
+    width: 758.4px; /* 8.5in letter width − 2×0.3in margin, 96dpi — matches PAGE_SETUP.prayer */
+    background: var(--white); color: var(--ink);
+  }
+  .pb-header, .pb-feature { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pb-header { background: var(--navy); color: #fff; padding: 16px 22px; }
+  .pb-top { display: flex; align-items: center; gap: 14px; }
+  .pb-logo img { height: 46px; width: auto; object-fit: contain; }
+  .pb-church { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1.1; }
+  .pb-subtitle { font-family: var(--font-display); font-style: italic; font-size: 13px; color: var(--gold-soft); margin-top: 2px; }
+  .pb-date { margin-left: auto; align-self: flex-start; font-family: var(--font-display); font-size: 14px; font-weight: 600; background: var(--gold); color: #fff; padding: 4px 12px; border-radius: 4px; }
+  .pb-contact { font-size: 11px; color: rgba(255,255,255,.8); margin-top: 8px; }
+
+  .pb-body { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 16px 22px; }
+  .pb-sec { margin-bottom: 13px; page-break-inside: avoid; }
+  .pb-sec:last-child { margin-bottom: 0; }
+  .pb-lbl { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--navy); border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-bottom: 6px; }
+  .pb-txt { font-size: 11.5px; line-height: 1.5; }
+  .pb-list-item { font-size: 11.5px; margin-bottom: 3px; line-height: 1.4; }
+
+  .pb-box { background: #F8FAFD; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+  .pb-box .pb-lbl { border-bottom: none; margin-bottom: 4px; }
+
+  .pb-feature { background: #EAF0F8; border-left: 3px solid var(--gold); border-radius: 6px; padding: 10px 12px; }
+  .pb-feature-title { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--navy); margin-bottom: 4px; }
+  .pb-feature-body { font-size: 11.5px; line-height: 1.5; }
+
+  .pb-footer { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 10px; }
+
+  /* ============================================================
      PRINT — the sheet only. Everything else vanishes.
      @page sizing is set dynamically by printMode() in the script
      below (landscape letter split into two half-sheets for printing,
@@ -525,6 +574,10 @@
     body[data-print-mode="sheet"] .print-sheets { width: auto; height: auto; overflow: visible; display: block; }
     .print-page { break-after: page; page-break-after: always; }
     .print-page:last-child { break-after: auto; page-break-after: auto; }
+
+    /* ---- prayer bulletin: one full page, its own document entirely ---- */
+    body[data-print-mode="prayer"] .bulletin { display: none; }
+    body[data-print-mode="prayer"] .prayer-sheet { width: auto; height: auto; overflow: visible; display: block; }
 
     /* ---- phone layout: everything in one column, reordered so the
        week's news reads before the fixed weekly-rhythm info ---- */
@@ -576,7 +629,7 @@
      before each print, so the same sheet can go out landscape (half-sheet
      printer copies) or portrait (phone-sized single column). -->
 <style id="pageSetupStyle">
-  @page { size: letter landscape; margin: 0.2in; }
+  @page { size: letter landscape; margin: 0.3in; }
 </style>
 </head>
 <body>
@@ -586,11 +639,12 @@
   <aside class="editor">
     <div class="editor-head">
       <h1>Bulletin Builder</h1>
-      <p>Edit the fields below — the bulletin updates as you type. When it looks right, use <b>Half-Sheet</b> to print two half-sheet bulletins per double-sided sheet (cut down the middle), or <b>Phone Layout</b> for something you'll text or email. Your work saves on this computer automatically.</p>
+      <p>Edit the fields below — the bulletin updates as you type. When it looks right, use <b>Half-Sheet</b> to print two half-sheet bulletins per double-sided sheet (cut down the middle), <b>Prayer Bulletin</b> for that separate one-page document, or <b>Phone Layout</b> for something you'll text or email. Your work saves on this computer automatically.</p>
     </div>
 
     <div class="toolbar">
       <button class="btn gold" onclick="printMode('sheet')" title="Two portrait half-sheets per side, double-sided — cut down the middle for two complete bulletins">🖨 Print — Half-Sheet Bulletin</button>
+      <button class="btn gold" onclick="printMode('prayer')" title="One full portrait page — the separate Prayer Bulletin document">🙏 Print — Prayer Bulletin</button>
       <button class="btn gold" onclick="printMode('phone')" title="1-column, portrait — best for texting or emailing to a phone">📱 Save PDF — Phone Layout</button>
       <button class="btn primary" onclick="saveNow(true)">💾 Save</button>
       <button class="btn small" onclick="startFresh()">Start next week</button>
@@ -598,6 +652,7 @@
     </div>
     <div id="saveNote" class="save-note"></div>
     <div id="fitWarning" class="fit-warning"></div>
+    <div id="prayerFitWarning" class="fit-warning"></div>
 
     <!-- WEEKLY: the parts that change every Sunday -->
     <details class="group" open>
@@ -750,6 +805,44 @@
       </div>
     </details>
 
+    <details class="group">
+      <summary>Prayer Bulletin <span class="hint">separate document</span></summary>
+      <div class="group-body">
+        <div class="sub" style="margin:0 0 10px">Fields just for the Prayer Bulletin — a separate one-page document (use <b>Print — Prayer Bulletin</b> above). Missionary, Shut-in, Coming Soon, and service times above are shared with it.</div>
+        <div class="field">
+          <label>Today</label>
+          <textarea data-bind="prayerToday" placeholder="What's happening today"></textarea>
+        </div>
+        <div class="field">
+          <label>Church family</label>
+          <div class="sub" style="margin:0 0 6px">Names to highlight this week.</div>
+          <div id="churchFamilyList"></div>
+          <button class="btn small add-row" onclick="addItem('churchFamily')">+ Add name</button>
+        </div>
+        <div class="field">
+          <label>Feature announcement</label>
+          <div class="sub" style="margin:0 0 6px">The one event that deserves extra attention — a retreat, a conference, a big deadline.</div>
+          <input data-bind="prayerFeatureTitle" placeholder="Title" style="margin-bottom:7px">
+          <textarea data-bind="prayerFeatureBody" placeholder="Details"></textarea>
+        </div>
+        <div class="field">
+          <label>Prayer focus</label>
+          <div id="prayerFocusList"></div>
+          <button class="btn small add-row" onclick="addItem('prayerFocus')">+ Add item</button>
+        </div>
+        <div class="field">
+          <label>Physical concerns</label>
+          <div id="physicalConcernsList"></div>
+          <button class="btn small add-row" onclick="addItem('physicalConcerns')">+ Add item</button>
+        </div>
+        <div class="field">
+          <label>Our country</label>
+          <div id="ourCountryList"></div>
+          <button class="btn small add-row" onclick="addItem('ourCountry')">+ Add item</button>
+        </div>
+      </div>
+    </details>
+
     <!-- FIXED: rarely-changing church info, tucked away -->
     <details class="group">
       <summary>Church info <span class="hint">rarely changes</span></summary>
@@ -762,6 +855,7 @@
           <div class="field"><label>Website</label><input data-bind="church.website"></div>
         </div>
         <div class="field"><label>Email</label><input data-bind="church.email"></div>
+        <div class="field"><label>Address</label><input data-bind="church.address" placeholder="Street, City, State ZIP"><div class="sub">Only shown on the Prayer Bulletin.</div></div>
 
         <div class="field">
           <label>Logo (optional)</label>
@@ -807,6 +901,8 @@
       <div class="bulletin" id="bulletin"><!-- rendered by JS --></div>
       <!-- print-only: two half-sheets per page, mirrored, cut in half after printing -->
       <div class="print-sheets" id="printSheets"><!-- rendered by JS --></div>
+      <!-- print-only: the separate one-page Prayer Bulletin document -->
+      <div class="prayer-sheet" id="prayerSheet"><!-- rendered by JS --></div>
     </div>
   </main>
 
@@ -825,6 +921,7 @@ const DEFAULTS = {
     phone: "(440) 943-4622",
     website: "www.NottinghamBaptist.org",
     email: "office@nottinghambaptist.org",
+    address: "",         // street address — only shown on the Prayer Bulletin
     logo: ""            // data-URL if a logo is uploaded
   },
   theme: { navy: "#1B3958", gold: "#B8975A" },  // print colors — tweak in "Church info" if a printer renders them off
@@ -884,7 +981,22 @@ const DEFAULTS = {
     { title: "Sample Event", meta: "Day, Month Date · Time", body: "Short description of the event goes here.", style: "navy" },
     { title: "Another Announcement", meta: "Day, Month Date", body: "Details and sign-up information go here.", style: "light" }
   ],
-  customNotes: []   // freeform extra sections — {title, body} — always shown right after Announcements
+  customNotes: [],   // freeform extra sections — {title, body} — always shown right after Announcements
+
+  // PRAYER BULLETIN — a separate document from the half-sheet/phone
+  // bulletin above (see printMode("prayer")). Reuses missionary, shutIn,
+  // comingSoon, fixed service times, church info (incl. the new address
+  // field), and logo/theme from the state above; flat top-level keys
+  // below (prefixed prayer*) are specific to this one, kept flat rather
+  // than nested so they work with the same generic list/field code as
+  // everything else.
+  prayerToday: "Community Groups meeting in homes and at church (7 pm)",
+  churchFamily: [ "Name", "Name" ],
+  prayerFeatureTitle: "Feature Announcement",
+  prayerFeatureBody: "Use this box for the one event that deserves extra attention this week — a retreat, a conference, a big sign-up deadline. Longer descriptions are fine here.",
+  prayerFocus: [ "Pastor and family", "Spiritual growth of our church" ],
+  physicalConcerns: [ "Name — recovering from surgery" ],
+  ourCountry: [ "Our leaders and our nation" ]
 };
 
 /* ============================================================
@@ -1000,6 +1112,89 @@ function hsCustomNotesHTML(s){
         ${n.title?`<div class="hc-title">${esc(n.title)}</div>`:``}
         <div class="hc-body">${nl(n.body)}</div>
       </div>`).join("");
+}
+
+/* a plain list of one-line text items, e.g. Church Family or Prayer Focus */
+function textListHTML(arr, cls, emptyHint){
+  return (arr||[]).filter(x=>x&&x.trim())
+    .map(x=>`<div class="${cls}">${esc(x)}</div>`).join("")
+    || `<span class="empty-hint">${emptyHint}</span>`;
+}
+
+/* ============================================================
+   3c. PRAYER BULLETIN — a separate one-page document. Reuses
+   missionary, shutIn, comingSoon, fixed service times, church info,
+   and logo/theme from the same state; everything else here is its
+   own (see the "prayer*"/churchFamily/prayerFocus/physicalConcerns/
+   ourCountry keys in DEFAULTS).
+   ============================================================ */
+function prayerBulletinHTML(s, logoSrc){
+  return `
+    <div class="pb-header">
+      <div class="pb-top">
+        <div class="pb-logo"><img src="${logoSrc}" alt="${esc(s.church.name)} logo"></div>
+        <div>
+          <div class="pb-church">${esc(s.church.name)}</div>
+          <div class="pb-subtitle">Prayer Bulletin</div>
+        </div>
+        <div class="pb-date">${esc(s.date)}</div>
+      </div>
+      <div class="pb-contact">${[s.church.pastor, s.church.address, s.church.phone].filter(x=>x&&x.trim()).map(esc).join(" · ")}</div>
+    </div>
+    <div class="pb-body">
+      <div>
+        <div class="pb-sec">
+          <div class="pb-lbl">Missionary of the Week</div>
+          <div class="pb-txt">${orHint(s.missionary,"—")}</div>
+        </div>
+        <div class="pb-sec">
+          <div class="pb-lbl">Shut-in of the Week</div>
+          <div class="pb-txt">${orHint(s.shutIn,"—")}</div>
+        </div>
+        <div class="pb-sec">
+          <div class="pb-lbl">Church Family</div>
+          ${textListHTML(s.churchFamily,'pb-list-item','No names added.')}
+        </div>
+        <div class="pb-sec">
+          <div class="pb-lbl">Today</div>
+          <div class="pb-txt">${orHint(s.prayerToday,"—")}</div>
+        </div>
+        <div class="pb-sec pb-box">
+          <div class="pb-lbl">Sunday Services</div>
+          <div class="hs-svc"><span class="name">Sunday School</span><span class="time">${esc(s.fixed.sundaySchool)}</span></div>
+          <div class="hs-svc"><span class="name">Morning Worship</span><span class="time">${esc(s.fixed.morningWorship)}</span></div>
+          <div class="hs-svc"><span class="name">Evening Service</span><span class="time">${esc(s.fixed.evening)}</span></div>
+        </div>
+        ${(s.prayerFeatureTitle && s.prayerFeatureTitle.trim()) || (s.prayerFeatureBody && s.prayerFeatureBody.trim()) ? `
+        <div class="pb-sec pb-feature">
+          <div class="pb-feature-title">${esc(s.prayerFeatureTitle)}</div>
+          <div class="pb-feature-body">${nl(s.prayerFeatureBody)}</div>
+        </div>` : ``}
+      </div>
+      <div>
+        <div class="pb-sec">
+          <div class="pb-lbl">Prayer Focus</div>
+          ${textListHTML(s.prayerFocus,'pb-list-item','Nothing added yet.')}
+        </div>
+        <div class="pb-sec">
+          <div class="pb-lbl">Physical Concerns</div>
+          ${textListHTML(s.physicalConcerns,'pb-list-item','Nothing added yet.')}
+        </div>
+        <div class="pb-sec">
+          <div class="pb-lbl">Our Country</div>
+          ${textListHTML(s.ourCountry,'pb-list-item','Nothing added yet.')}
+        </div>
+        <div class="pb-sec">
+          <div class="pb-lbl">Online Giving</div>
+          <div class="pb-txt">Give at <em>${esc(s.church.website)}</em>, or place your tithe in the offering plate or box in the foyer.</div>
+        </div>
+      </div>
+      <div class="pb-footer">
+        <div class="pb-lbl">Coming Soon</div>
+        ${hsComingHTML(s)}
+      </div>
+    </div>
+  `;
 }
 
 function halfSheetFrontHTML(s, logoSrc){
@@ -1318,6 +1513,9 @@ function render(){
     </div>
   `;
   checkPageFit();
+
+  document.getElementById("prayerSheet").innerHTML = `<div class="prayer-page">${prayerBulletinHTML(s, logoSrc)}</div>`;
+  checkPrayerFit();
 }
 
 /* ============================================================
@@ -1333,7 +1531,11 @@ const LIST_DEFS = {
   attendance:   { el:"attendanceList",    kind:"attend", blank:{date:"",label:"",value:""} },
   nursery:      { el:"nurseryList",       kind:"tx",     blank:{t:"",x:""} },
   announcements:{ el:"announcementsList", kind:"card",   blank:{title:"",meta:"",body:"",style:"light"} },
-  customNotes:  { el:"customNotesList",   kind:"note",   blank:{title:"",body:""} }
+  customNotes:  { el:"customNotesList",   kind:"note",   blank:{title:"",body:""} },
+  churchFamily:     { el:"churchFamilyList",     kind:"text", blank:"" },
+  prayerFocus:      { el:"prayerFocusList",      kind:"text", blank:"" },
+  physicalConcerns: { el:"physicalConcernsList", kind:"text", blank:"" },
+  ourCountry:       { el:"ourCountryList",       kind:"text", blank:"" }
 };
 
 function renderLists(){
@@ -1505,7 +1707,8 @@ function clearLogo(){ state.church.logo = ""; showLogoPreview(); render(); autos
    ============================================================ */
 const PAGE_SETUP = {
   sheet: "@page { size: letter landscape; margin: 0.3in; }",   // landscape letter, split into 2 portrait half-sheets, 3 pages total. 0.3in gives real safety margin for printers whose unprintable strip runs wider than expected, and matches the gap between the two half-sheets (see .print-page in the CSS) so the border is equal on all 4 sides once cut
-  phone: "@page { size: letter portrait; margin: 0.45in; }" // portrait — matches the single-column phone layout
+  phone: "@page { size: letter portrait; margin: 0.45in; }", // portrait — matches the single-column phone layout
+  prayer: "@page { size: letter portrait; margin: 0.3in; }" // portrait, full page — matches .prayer-page in the CSS
 };
 
 /* How much a half-sheet can hold before it spills onto an extra printed page —
@@ -1513,6 +1716,10 @@ const PAGE_SETUP = {
    above, at the standard 96dpi browsers use for CSS pixels. Keep these two
    in sync if the page size or margin ever changes. */
 const HS_PAGE_HEIGHT_PX = (8.5 - 2*0.3) * 96; // 7.9in of usable height
+
+/* Same idea as HS_PAGE_HEIGHT_PX but for the Prayer Bulletin's one full
+   portrait page — derived from PAGE_SETUP.prayer's letter-portrait + 0.3in. */
+const PB_PAGE_HEIGHT_PX = (11 - 2*0.3) * 96; // 10.4in of usable height
 
 function checkPageFit(){
   const el = document.getElementById("fitWarning");
@@ -1526,6 +1733,18 @@ function checkPageFit(){
   });
   if (over.length){
     el.textContent = `⚠ The ${over.join(" and ")} has more content than fits on one page. Printing now will add a 4th page and break the "print double-sided, cut in half" setup. Try shortening a note, moving something to Coming Soon, or removing an optional item.`;
+    el.classList.add("show");
+  } else {
+    el.classList.remove("show");
+  }
+}
+
+function checkPrayerFit(){
+  const el = document.getElementById("prayerFitWarning");
+  const page = document.querySelector("#prayerSheet .prayer-page");
+  if (!page){ el.classList.remove("show"); return; }
+  if (page.getBoundingClientRect().height > PB_PAGE_HEIGHT_PX){
+    el.textContent = `⚠ The Prayer Bulletin has more content than fits on one page. Printing now will add a 2nd page. Try shortening the prayer list, or moving something to Coming Soon.`;
     el.classList.add("show");
   } else {
     el.classList.remove("show");
