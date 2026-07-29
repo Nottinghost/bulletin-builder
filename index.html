@@ -27,12 +27,19 @@
 
      TWO PRINT OUTPUTS (see printMode() near the bottom of the script):
        - "Half-Sheet Bulletin" (mode "sheet") — the real production
-         format: 2 physical pages, each showing the SAME half-sheet
+         format: 3 physical pages (front = services, middle = people/
+         info, third = announcements), each showing the SAME half-sheet
          content mirrored twice side by side. Printed double-sided and
          cut down the middle, this yields two identical complete small
-         bulletins per full sheet of paper. This MUST stay at exactly
-         2 pages — a 3rd page breaks the cut-in-half workflow. See the
-         HS_PAGE_HEIGHT_PX budget and checkPageFit() warning banner.
+         bulletins per sheet of paper (2 sheets — the 2nd printed
+         single-sided). This MUST stay at exactly 3 pages — a 4th page
+         breaks the cut-in-half workflow. See the HS_PAGE_HEIGHT_PX
+         budget and checkPageFit() warning banner. Every half-sheet also
+         keeps an equal margin on all 4 sides, including the cut line
+         down the middle (see the print-page gap/guide in the CSS), so
+         printed edges read as a deliberate border rather than a
+         too-close-to-the-edge accident on printers with a wider
+         unprintable strip than expected.
        - "Phone Layout" (mode "phone") — single column, full portrait
          page, for texting/emailing. Page count doesn't matter here.
 
@@ -385,26 +392,34 @@
   /* ============================================================
      HALF-SHEET PRINT LAYOUT — two portrait half-sheets side by side
      on one landscape page, meant to be printed double-sided and cut
-     down the middle. Front page = two copies of the services half-
-     sheet; back page = two copies of the people/announcements half-
-     sheet. Hidden on screen; only shown for Print — Half-Sheet.
+     down the middle. 3 pages total (see render() near the bottom of
+     the script): front = services, middle = people/info, third =
+     announcements. Hidden on screen; only shown for Print — Half-Sheet.
      Body text stays 12-14px throughout — this bulletin is read by
      people who need that, even though the sheet itself is small.
-     The two copies sit flush against each other with zero gap — no
-     printed cut guide — so colored bars (header/footer) run
-     seamlessly across the cut line. Each half-sheet's own side
-     padding is what keeps actual text safely clear of the cut,
-     not a visual marker.
+     The two copies keep an equal gap between them (matching the outer
+     page margin) with a dashed cut guide down the middle, so every
+     half-sheet ends up with the same border on all 4 sides once cut —
+     a deliberate margin instead of a bleed-to-the-edge gamble that
+     different printers' unprintable strips can clip unpredictably.
      ============================================================ */
   /* Kept off-screen (not display:none) so its real height can be measured
      on every render() — that's how the overflow warning near the print
-     button knows whether content will spill onto a 3rd page. Width is
-     fixed to the actual printable width (11in page − 2×0.2in margin, at
+     button knows whether content will spill onto an extra page. Width is
+     fixed to the actual printable width (11in page − 2×0.3in margin, at
      96dpi — see PAGE_SETUP.sheet in the script) so the measurement matches
      print exactly regardless of the browser window's own size. */
   .print-sheets { width: 0; height: 0; overflow: hidden; }
-  .print-page { display: flex; align-items: flex-start; width: 1017.6px; }
+  .print-page { position: relative; display: flex; align-items: flex-start; width: 998.4px; }
   .print-page .half-sheet { flex: 1 1 0; min-width: 0; }
+  .print-page .half-sheet:first-child { margin-right: 14.4px; }
+  .print-page .half-sheet:last-child { margin-left: 14.4px; }
+  .print-page::after {
+    /* dashed cut-guide, centered in the gap — a visual aid only, not
+       something the content relies on for safe margins */
+    content: ""; position: absolute; top: 0; bottom: 0; left: 50%;
+    border-left: 1px dashed var(--line); transform: translateX(-50%);
+  }
 
   .half-sheet { padding: 14px 20px 10px; font-size: 12.5px; line-height: 1.3; color: var(--ink); overflow-wrap: break-word; }
   .hs-header, .hs-footer, .hs-date, .hs-card {
@@ -456,6 +471,14 @@
   .hc-meta { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
   .hc-body { font-size: 12.5px; line-height: 1.4; }
 
+  /* Announcements get their own third half-sheet page now (see render()) —
+     more room means bigger, more breathable cards instead of the compact
+     sizing needed when they had to share a page with everything else. */
+  .hs-announce-page .hs-card { padding: 13px 15px; margin-bottom: 13px; }
+  .hs-announce-page .hc-title { font-size: 16.5px; }
+  .hs-announce-page .hc-meta { font-size: 13px; }
+  .hs-announce-page .hc-body { font-size: 13.5px; line-height: 1.6; }
+
   .hs-footer { margin-top: 4px; background: var(--navy-mid); color: rgba(255,255,255,.92); font-size: 12px; text-align: center; padding: 6px 20px; margin-left: -20px; margin-right: -20px; }
 
   /* ============================================================
@@ -474,11 +497,12 @@
     .bulletin { width: 100%; box-shadow: none; }
     .empty-hint { display: none; }
 
-    /* ---- half-sheet mode: two mirrored half-sheets per page, front
-       page then back page, cut in half after printing double-sided ---- */
+    /* ---- half-sheet mode: two mirrored half-sheets per page, front /
+       middle / announcements pages in sequence, cut in half after
+       printing double-sided ---- */
     body[data-print-mode="sheet"] .bulletin { display: none; }
     body[data-print-mode="sheet"] .print-sheets { width: auto; height: auto; overflow: visible; display: block; }
-    .print-page:first-child { break-after: page; page-break-after: always; }
+    .print-page { break-after: page; page-break-after: always; }
     .print-page:last-child { break-after: auto; page-break-after: auto; }
 
     /* ---- phone layout: everything in one column, reordered so the
@@ -680,6 +704,15 @@
           <div class="logo-preview" id="logoPreview"></div>
         </div>
 
+        <div class="field">
+          <label>Print colors</label>
+          <div class="row2">
+            <div class="field" style="margin-bottom:0"><label>Navy</label><input type="color" data-bind="theme.navy" style="padding:2px;height:34px"></div>
+            <div class="field" style="margin-bottom:0"><label>Gold</label><input type="color" data-bind="theme.gold" style="padding:2px;height:34px"></div>
+          </div>
+          <div class="sub">If a printer renders these differently than expected, nudge them here until a test print looks right.</div>
+        </div>
+
         <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
 
         <div class="field"><label>Sunday School time</label><input data-bind="fixed.sundaySchool"></div>
@@ -693,8 +726,8 @@
 
     <div style="padding:16px 20px; font-size:11.5px; color:var(--muted); line-height:1.65;">
       <b style="color:var(--navy)">Best browser for printing/saving:</b> Use <b>Chrome</b> or <b>Edge</b> — both render this page's colors and layout correctly and reliably. <b>Safari</b> has known quirks with pages like this one (it can miss the page orientation, add an unexpected margin, or be slow enough that it looks frozen while it works out the colors) — if Safari is all you have, give it a bit before assuming it's stuck, and double-check the result.<br><br>
-      <b style="color:var(--navy)">Which button to use:</b> <b>Print — Half-Sheet Bulletin</b> makes a 2-page, double-sided document — each page is two identical portrait half-sheets side by side (front = the service info, back = announcements and people). Print it double-sided and cut down the middle: you get two complete small bulletins per full sheet of paper. <b>Save PDF — Phone Layout</b> reflows everything into one column, full-page portrait — best for texting or emailing to someone who'll read it on their phone.<br><br>
-      <b style="color:var(--navy)">To print the half-sheets:</b> click <b>Print — Half-Sheet Bulletin</b>, choose <b>Letter</b> paper, and turn on <b>double-sided printing</b> in the print window (usually "Two-Sided" or "Duplex," flipping on the long edge). It's always exactly 2 pages — if it's ever cutting onto a 3rd, something's overflowing and worth a look rather than just printing anyway.<br><br>
+      <b style="color:var(--navy)">Which button to use:</b> <b>Print — Half-Sheet Bulletin</b> makes a 3-page document — each page is two identical portrait half-sheets side by side (page 1 = service info, page 2 = people/attendance/nursery, page 3 = announcements). Print it double-sided: the first two pages become the front/back of one sheet, and the third prints alone on a second sheet. Cut every printed sheet down the middle and you get two complete small bulletins per sheet of paper. <b>Save PDF — Phone Layout</b> reflows everything into one column, full-page portrait — best for texting or emailing to someone who'll read it on their phone.<br><br>
+      <b style="color:var(--navy)">To print the half-sheets:</b> click <b>Print — Half-Sheet Bulletin</b>, choose <b>Letter</b> paper, and turn on <b>double-sided printing</b> in the print window (usually "Two-Sided" or "Duplex," flipping on the long edge). It's always exactly 3 pages — if it's ever cutting onto a 4th, something's overflowing and worth a look rather than just printing anyway.<br><br>
       <b style="color:var(--navy)">To email or text it:</b> in the print window, set the destination to <b>Save as PDF</b> and save the file, then attach it. The PDF keeps the design perfectly for everyone who opens it.<br><br>
       <b style="color:#B26A1F">If it prints in portrait, or with a bigger-than-expected white border:</b> some browsers (Safari especially) don't switch to landscape on their own. In the print window, set <b>Orientation</b> to <b>Landscape</b>, <b>Scale</b> to <b>100%</b>, and leave <b>Margins</b> on <b>Default</b> (not "None" — the page already carries its own safe margin, and forcing "None" can make a physical printer clip content it can't reach). Also turn on <b>“Background graphics”</b> (or “Print backgrounds”) if the navy and gold print white.<br><br>
       <b style="color:#B26A1F">If a physical printout still looks clipped at the edge:</b> that's your printer's own hardware limit, not this page — every printer has a strip near the edge it physically cannot print into, and it varies by model. This tool's margin is set to clear that strip for the vast majority of printers. If you want truly edge-to-edge output, check the print dialog for a <b>“Borderless”</b> or <b>“Full bleed”</b> paper option — only your printer's own driver can turn that on.<br><br>
@@ -728,6 +761,7 @@ const DEFAULTS = {
     email: "office@nottinghambaptist.org",
     logo: ""            // data-URL if a logo is uploaded
   },
+  theme: { navy: "#1B3958", gold: "#B8975A" },  // print colors — tweak in "Church info" if a printer renders them off
   fixed: {
     sundaySchool: "9:30 a.m.",
     morningWorship: "10:45 a.m.",
@@ -934,7 +968,7 @@ function halfSheetFrontHTML(s, logoSrc){
   `;
 }
 
-function halfSheetBackHTML(s){
+function halfSheetMiddleHTML(s){
   return `
     <div class="hs-sec">
       <div class="hs-lbl">Missionary of the Week</div>
@@ -959,7 +993,22 @@ function halfSheetBackHTML(s){
       <div class="hs-nursery">${hsNurseryHTML(s)}</div>
       ${s.nurseryNote?`<div class="hs-txt" style="margin-top:5px;font-style:italic;color:var(--muted)">${esc(s.nurseryNote)}</div>`:``}
     </div>
-    <div class="hs-sec">
+  `;
+}
+
+function halfSheetAnnounceHTML(s, logoSrc){
+  return `
+    <div class="hs-header">
+      <div class="hs-top">
+        <div class="hs-logo"><img src="${logoSrc}" alt="${esc(s.church.name)} logo"></div>
+        <div>
+          <div class="hs-church">${esc(s.church.name)}</div>
+          <div class="hs-tagline">${esc(s.church.tagline)}</div>
+        </div>
+      </div>
+      <div class="hs-daterow"><span class="hs-date">${esc(s.date)}</span><span class="hs-contact">Announcements</span></div>
+    </div>
+    <div class="hs-sec hs-announce-page">
       <div class="hs-lbl">Announcements</div>
       ${hsCardsHTML(s)}
     </div>
@@ -970,7 +1019,14 @@ function halfSheetBackHTML(s){
   `;
 }
 
+function applyTheme(){
+  const t = state.theme || DEFAULTS.theme;
+  document.documentElement.style.setProperty('--navy', t.navy || DEFAULTS.theme.navy);
+  document.documentElement.style.setProperty('--gold', t.gold || DEFAULTS.theme.gold);
+}
+
 function render(){
+  applyTheme();
   const s = state;
   const logoSrc = s.church.logo || BUILTIN_LOGO;
 
@@ -1121,15 +1177,20 @@ function render(){
   `;
 
   const frontHTML = halfSheetFrontHTML(s, logoSrc);
-  const backHTML = halfSheetBackHTML(s);
+  const middleHTML = halfSheetMiddleHTML(s);
+  const announceHTML = halfSheetAnnounceHTML(s, logoSrc);
   document.getElementById("printSheets").innerHTML = `
     <div class="print-page">
       <div class="half-sheet">${frontHTML}</div>
       <div class="half-sheet">${frontHTML}</div>
     </div>
     <div class="print-page">
-      <div class="half-sheet">${backHTML}</div>
-      <div class="half-sheet">${backHTML}</div>
+      <div class="half-sheet">${middleHTML}</div>
+      <div class="half-sheet">${middleHTML}</div>
+    </div>
+    <div class="print-page">
+      <div class="half-sheet">${announceHTML}</div>
+      <div class="half-sheet">${announceHTML}</div>
     </div>
   `;
   checkPageFit();
@@ -1299,28 +1360,28 @@ function clearLogo(){ state.church.logo = ""; showLogoPreview(); render(); autos
    6. ACTIONS
    ============================================================ */
 const PAGE_SETUP = {
-  sheet: "@page { size: letter landscape; margin: 0.2in; }",   // landscape letter, split into 2 portrait half-sheets. 0.2in clears the unprintable strip on the vast majority of real printers
+  sheet: "@page { size: letter landscape; margin: 0.3in; }",   // landscape letter, split into 2 portrait half-sheets, 3 pages total. 0.3in gives real safety margin for printers whose unprintable strip runs wider than expected, and matches the gap between the two half-sheets (see .print-page in the CSS) so the border is equal on all 4 sides once cut
   phone: "@page { size: letter portrait; margin: 0.45in; }" // portrait — matches the single-column phone layout
 };
 
-/* How much a half-sheet can hold before it spills onto a 3rd printed page —
-   derived from the same landscape letter + 0.2in margin as PAGE_SETUP.sheet
+/* How much a half-sheet can hold before it spills onto an extra printed page —
+   derived from the same landscape letter + 0.3in margin as PAGE_SETUP.sheet
    above, at the standard 96dpi browsers use for CSS pixels. Keep these two
    in sync if the page size or margin ever changes. */
-const HS_PAGE_HEIGHT_PX = (8.5 - 2*0.2) * 96; // 8.1in of usable height
+const HS_PAGE_HEIGHT_PX = (8.5 - 2*0.3) * 96; // 7.9in of usable height
 
 function checkPageFit(){
   const el = document.getElementById("fitWarning");
   const pages = document.querySelectorAll("#printSheets .print-page");
   if (!pages.length){ el.classList.remove("show"); return; }
-  const labels = ["front (services) half-sheet", "back (people/announcements) half-sheet"];
+  const labels = ["front (services) half-sheet", "middle (people/info) half-sheet", "third (announcements) half-sheet"];
   const over = [];
   pages.forEach((p, i)=>{
     const hs = p.querySelector(".half-sheet");
     if (hs && hs.getBoundingClientRect().height > HS_PAGE_HEIGHT_PX) over.push(labels[i] || `page ${i+1}`);
   });
   if (over.length){
-    el.textContent = `⚠ The ${over.join(" and ")} has more content than fits on one page. Printing now will add a 3rd page and break the "print double-sided, cut in half" setup. Try shortening a note, moving something to Coming Soon, or removing an optional item.`;
+    el.textContent = `⚠ The ${over.join(" and ")} has more content than fits on one page. Printing now will add a 4th page and break the "print double-sided, cut in half" setup. Try shortening a note, moving something to Coming Soon, or removing an optional item.`;
     el.classList.add("show");
   } else {
     el.classList.remove("show");
