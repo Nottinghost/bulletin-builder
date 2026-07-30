@@ -340,7 +340,7 @@
   .ptab-hint { font-size: 11px; color: var(--muted); }
 
   .preview-page-label {
-    width: 998.4px; max-width: 100%; margin: 0 auto 8px; text-align: center;
+    width: 1027.2px; max-width: 100%; margin: 0 auto 8px; text-align: center;
     font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
     color: var(--muted);
   }
@@ -535,16 +535,25 @@
      announcements. Hidden on screen; only shown for Download PDF — Half-Sheet.
      Body text stays 12-14px throughout — this bulletin is read by
      people who need that, even though the sheet itself is small.
-     The two copies keep an equal gap between them (matching the outer
-     page margin) with a dashed cut guide down the middle, so every
-     half-sheet ends up with the same border on all 4 sides once cut —
-     a deliberate margin instead of a bleed-to-the-edge gamble that
-     different printers' unprintable strips can clip unpredictably.
+     The two copies keep a gap between them with a dashed cut guide
+     down the middle, so every half-sheet ends up with a real border
+     on all 4 sides once cut — a deliberate margin instead of a bleed-
+     to-the-edge gamble that different printers' unprintable strips
+     can clip unpredictably. IMPORTANT: the cut splits that gap evenly
+     in half — each resulting half-sheet only keeps HALF of it, while
+     the outer @page margin is kept whole. So for the border to end up
+     equal on all 4 sides AFTER cutting (not just equal-looking before
+     cutting), the outer @page margin must equal HALF the gap, not the
+     full gap — matching the two exactly (like an earlier version of
+     this file did) leaves the outer edge twice as wide as the cut edge
+     once they're actually separated. Keep PAGE_SETUP.sheet's margin
+     equal to each half-sheet's own margin-left/right below, not to
+     their sum, if this ever needs adjusting again.
      ============================================================ */
   /* Kept off-screen (not display:none) so its real height can be measured
      on every render() — that's how the overflow warning near the print
      button knows whether content will spill onto an extra page. Width is
-     fixed to the actual printable width (11in page − 2×0.3in margin, at
+     fixed to the actual printable width (11in page − 2×0.15in margin, at
      96dpi — see PAGE_SETUP.sheet in the script) so the measurement matches
      print exactly regardless of the browser window's own size. This same
      fixed width is also what actually prints (see margin: 0 auto below)
@@ -556,7 +565,7 @@
      means the fit-check is always measuring the real thing, and any
      leftover slack still splits evenly as an equal margin either way. */
   .print-sheets { width: 0; height: 0; overflow: hidden; }
-  .print-page { position: relative; display: flex; align-items: flex-start; width: 998.4px; margin: 0 auto; }
+  .print-page { position: relative; display: flex; align-items: flex-start; width: 1027.2px; margin: 0 auto; }
   .print-page .half-sheet { flex: 1 1 0; min-width: 0; }
   .print-page .half-sheet:first-child { margin-right: 14.4px; }
   .print-page .half-sheet:last-child { margin-left: 14.4px; }
@@ -808,10 +817,11 @@
   }
 </style>
 <!-- The page's physical size/orientation is rewritten by printMode() right
-     before each print, so the same sheet can go out landscape (half-sheet
-     printer copies) or portrait (the full-page Prayer Bulletin). -->
+     before each print (see PAGE_SETUP in the script) — currently the same
+     landscape half-sheet setup for both documents, but kept dynamic here
+     in case that ever diverges again. -->
 <style id="pageSetupStyle">
-  @page { size: letter landscape; margin: 0.3in; }
+  @page { size: letter landscape; margin: 0.15in; }
 </style>
 </head>
 <body>
@@ -2005,17 +2015,17 @@ function clearLogo(){ state.church.logo = ""; showLogoPreview(); render(); autos
    6. ACTIONS
    ============================================================ */
 const PAGE_SETUP = {
-  sheet: "@page { size: letter landscape; margin: 0.3in; }",   // landscape letter, split into 2 portrait half-sheets, 3 pages total. 0.3in clears the unprintable strip on the vast majority of real printers, and matches the gap between the two half-sheets (see .print-page in the CSS) so the border is equal on all 4 sides once cut
-  prayer: "@page { size: letter landscape; margin: 0.3in; }" // same half-sheet format as .sheet now — kept as its own key for clarity even though identical, since printMode() is called with "prayer" explicitly
+  sheet: "@page { size: letter landscape; margin: 0.15in; }",   // landscape letter, split into 2 portrait half-sheets, 3 pages total. Matches each half-sheet's own margin-left/right in the CSS (14.4px = 0.15in) — NOT their sum — so the border ends up equal on all 4 sides once the center gap is cut in half. See the HALF-SHEET PRINT LAYOUT comment in the CSS if this needs revisiting.
+  prayer: "@page { size: letter landscape; margin: 0.15in; }" // same half-sheet format as .sheet now — kept as its own key for clarity even though identical, since printMode() is called with "prayer" explicitly
 };
 
 /* How much a half-sheet can hold before it spills onto an extra printed page —
-   derived from the same landscape letter + 0.3in margin as PAGE_SETUP.sheet
+   derived from the same landscape letter + 0.15in margin as PAGE_SETUP.sheet
    above, at the standard 96dpi browsers use for CSS pixels. Keep these two
    in sync if the page size or margin ever changes. Shared by both the main
    bulletin and the Prayer Bulletin, since both are the same half-sheet
    format now — see checkPagesFit(). */
-const HS_PAGE_HEIGHT_PX = (8.5 - 2*0.3) * 96; // 7.9in of usable height
+const HS_PAGE_HEIGHT_PX = (8.5 - 2*0.15) * 96; // 8.2in of usable height
 
 /* Shared by checkPageFit()/checkPrayerFit() below — both measure a set of
    mirrored .print-page/.half-sheet pairs against the same HS_PAGE_HEIGHT_PX
