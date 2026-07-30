@@ -39,7 +39,14 @@
          down the middle (see the print-page gap/guide in the CSS), so
          printed edges read as a deliberate border rather than a
          too-close-to-the-edge accident on printers with a wider
-         unprintable strip than expected.
+         unprintable strip than expected. Both buttons are labeled
+         "Download PDF" rather than "Print" on purpose — direct printing
+         has shown small font/spacing inconsistencies across browsers
+         that Save-as-PDF hasn't, so the recommended flow is always
+         Save as PDF, then print that file. Also: this document is
+         LANDSCAPE, so duplex printing needs Short-Edge/"Tumble" binding,
+         not the Long-Edge default — long-edge is correct for portrait
+         documents but flips a landscape one's back side upside down.
        - "Prayer Bulletin" (mode "prayer") — a completely separate
          document (prayerBulletinHTML()): one full portrait page, not
          mirrored/halved, no cut-in-half workflow. Budgeted for 1 page
@@ -496,7 +503,7 @@
      on one landscape page, meant to be printed double-sided and cut
      down the middle. 3 pages total (see render() near the bottom of
      the script): front = services, middle = people/info, third =
-     announcements. Hidden on screen; only shown for Print — Half-Sheet.
+     announcements. Hidden on screen; only shown for Download PDF — Half-Sheet.
      Body text stays 12-14px throughout — this bulletin is read by
      people who need that, even though the sheet itself is small.
      The two copies keep an equal gap between them (matching the outer
@@ -610,7 +617,7 @@
      bulletin above (see prayerBulletinHTML() and printMode("prayer")
      in the script). One full portrait page, not mirrored/halved —
      there's no cut-in-half workflow for this one. Hidden on screen;
-     only shown for Print — Prayer Bulletin. Styled to match the rest
+     only shown for Download PDF — Prayer Bulletin. Styled to match the rest
      of this tool's look (navy/gold theme, same fonts) rather than
      reproducing any specific existing paper prayer bulletin's exact
      layout pixel-for-pixel.
@@ -761,13 +768,13 @@
   <aside class="editor">
     <div class="editor-head">
       <h1>Bulletin Builder</h1>
-      <p>Edit the fields below — the bulletin updates as you type. When it looks right, use <b>Half-Sheet</b> to print two half-sheet bulletins per double-sided sheet (cut down the middle), or <b>Prayer Bulletin</b> for that separate one-page document. <b>Copy Link</b> next to either one is for texting or emailing instead. Your work saves on this computer automatically.</p>
+      <p>Edit the fields below — the bulletin updates as you type. When it looks right, use <b>Half-Sheet</b> to download a PDF of two half-sheet bulletins per double-sided sheet (cut down the middle), or <b>Prayer Bulletin</b> for that separate one-page document — then print the downloaded PDF rather than printing straight from this page. <b>Copy Link</b> next to either one is for texting or emailing instead. Your work saves on this computer automatically.</p>
     </div>
 
     <div class="toolbar">
-      <button class="btn gold" onclick="printMode('sheet')" title="Two portrait half-sheets per side, double-sided — cut down the middle for two complete bulletins">🖨 Print — Half-Sheet Bulletin</button>
+      <button class="btn gold" onclick="printMode('sheet')" title="Opens the print window — choose Save as PDF, then print that PDF file instead of printing directly from here">⬇ Download PDF — Half-Sheet Bulletin</button>
       <button class="btn small" onclick="copyLink('sheet')" title="Copy a link that opens a clean, phone-friendly view of this bulletin — for texting or emailing">🔗 Copy Link</button>
-      <button class="btn gold" onclick="printMode('prayer')" title="One full portrait page — the separate Prayer Bulletin document">🙏 Print — Prayer Bulletin</button>
+      <button class="btn gold" onclick="printMode('prayer')" title="Opens the print window — choose Save as PDF, then print that PDF file instead of printing directly from here">⬇ Download PDF — Prayer Bulletin</button>
       <button class="btn small" onclick="copyLink('prayer')" title="Copy a link that opens a clean, phone-friendly view of the Prayer Bulletin — for texting or emailing">🔗 Copy Link</button>
       <button class="btn primary" onclick="saveNow(true)">💾 Save</button>
       <button class="btn small" onclick="startFresh()">Start next week</button>
@@ -931,7 +938,7 @@
     <details class="group">
       <summary>Prayer Bulletin <span class="hint">separate document</span></summary>
       <div class="group-body">
-        <div class="sub" style="margin:0 0 10px">Fields just for the Prayer Bulletin — a separate one-page document (use <b>Print — Prayer Bulletin</b> above). Missionary, Shut-in, Coming Soon, and service times above are shared with it.</div>
+        <div class="sub" style="margin:0 0 10px">Fields just for the Prayer Bulletin — a separate one-page document (use <b>Download PDF — Prayer Bulletin</b> above). Missionary, Shut-in, Coming Soon, and service times above are shared with it.</div>
         <div class="field">
           <label>Today</label>
           <textarea data-bind="prayerToday" placeholder="What's happening today"></textarea>
@@ -1009,12 +1016,12 @@
 
     <div style="padding:16px 20px; font-size:11.5px; color:var(--muted); line-height:1.65;">
       <b style="color:var(--navy)">Best browser for printing/saving:</b> Use <b>Chrome</b> or <b>Edge</b> — both render this page's colors and layout correctly and reliably. <b>Safari</b> has known quirks with pages like this one (it can miss the page orientation, add an unexpected margin, or be slow enough that it looks frozen while it works out the colors) — if Safari is all you have, give it a bit before assuming it's stuck, and double-check the result.<br><br>
-      <b style="color:var(--navy)">Which button to use:</b> <b>Print — Half-Sheet Bulletin</b> makes a 3-page document — each page is two identical portrait half-sheets side by side (page 1 = service info, page 2 = people/attendance/nursery, page 3 = announcements). Print it double-sided: the first two pages become the front/back of one sheet, and the third prints alone on a second sheet. Cut every printed sheet down the middle and you get two complete small bulletins per sheet of paper. <b>Print — Prayer Bulletin</b> is the separate one-page prayer document, printed the normal way (no cutting). <b>Copy Link</b> next to either one copies a link to a clean, phone-friendly page showing that bulletin — paste it into a text or email instead of attaching a file.<br><br>
-      <b style="color:#2F7D46">Most reliable way to print — save as PDF first:</b> in the print window, set the destination to <b>Save as PDF</b> instead of a printer, save the file, then open that PDF and print <i>it</i> (e.g. in Preview on a Mac) rather than printing straight from this page. Direct printing and Save-as-PDF can render fonts and spacing slightly differently between browsers — the saved PDF has been the most consistent, correctly-rendered result in testing, so treat it as the source of truth and print from there.<br><br>
-      <b style="color:var(--navy)">To print the half-sheets:</b> click <b>Print — Half-Sheet Bulletin</b>, save as PDF, then print that PDF on <b>Letter</b> paper with <b>double-sided printing</b> turned on (usually "Two-Sided" or "Duplex," flipping on the long edge). It's always exactly 3 pages — if it's ever cutting onto a 4th, something's overflowing and worth a look rather than just printing anyway.<br><br>
+      <b style="color:var(--navy)">Which button to use:</b> <b>Download PDF — Half-Sheet Bulletin</b> makes a 3-page PDF — each page is two identical portrait half-sheets side by side (page 1 = service info, page 2 = people/attendance/nursery, page 3 = announcements). <b>Download PDF — Prayer Bulletin</b> is the separate one-page prayer document (no cutting). <b>Copy Link</b> next to either one copies a link to a clean, phone-friendly page showing that bulletin instead — for texting or emailing, no file needed.<br><br>
+      <b style="color:#2F7D46">Always print from the downloaded PDF, not straight from this page:</b> clicking a Download PDF button opens the browser's print window — set the destination to <b>Save as PDF</b> there (not a physical printer), save the file, then open <i>that PDF</i> (e.g. in Preview on a Mac) and print from it. Printing directly from this page can render fonts and spacing slightly differently depending on the browser; the saved PDF has been the one consistently correct result in testing, so treat it as the file to actually send to the printer.<br><br>
+      <b style="color:var(--navy)">To print the half-sheets from the PDF:</b> use <b>Letter</b> paper with <b>double-sided printing</b> turned on — but since this document is <b>landscape</b>, choose <b>Short-Edge</b> binding (sometimes labeled "Tumble" or "Flip on Short Edge"), <u>not</u> the usual Long-Edge/"Book" default. Long-edge duplex is correct for an upright portrait document; on a landscape one like this it flips the back side upside down. It's always exactly 3 pages — if it's ever cutting onto a 4th, something's overflowing and worth a look rather than just printing anyway.<br><br>
       <b style="color:var(--navy)">To email or text it:</b> click <b>Copy Link</b> next to the bulletin you want to share, then paste the link into the text or email — no file to attach, and it opens as a clean page on whatever they're reading it on. The link itself carries the bulletin's content, so it keeps working even after you've moved on to next week's — copy a fresh one each week.<br><br>
-      <b style="color:#B26A1F">If it prints in portrait, or with a bigger-than-expected white border:</b> some browsers (Safari especially) don't switch to landscape on their own. In the print window, set <b>Orientation</b> to <b>Landscape</b>, <b>Scale</b> to <b>100%</b>, and leave <b>Margins</b> on <b>Default</b> (not "None" — the page already carries its own safe margin, and forcing "None" can make a physical printer clip content it can't reach). Also turn on <b>“Background graphics”</b> (or “Print backgrounds”) if the navy and gold print white.<br><br>
-      <b style="color:#B26A1F">If a physical printout still looks clipped at the edge:</b> first try printing from a saved PDF instead of printing directly (see above) — that alone has fixed this before. If it's still clipped, that's your printer's own hardware limit, not this page — every printer has a strip near the edge it physically cannot print into, and it varies by model. This tool's margin is set to clear that strip for the vast majority of printers. If you want truly edge-to-edge output, check the print dialog for a <b>“Borderless”</b> or <b>“Full bleed”</b> paper option — only your printer's own driver can turn that on.<br><br>
+      <b style="color:#B26A1F">If the PDF comes out in portrait, or with a bigger-than-expected white border:</b> some browsers (Safari especially) don't switch to landscape on their own. In the print window, set <b>Orientation</b> to <b>Landscape</b>, <b>Scale</b> to <b>100%</b>, and leave <b>Margins</b> on <b>Default</b> (not "None" — the page already carries its own safe margin, and forcing "None" can make a physical printer clip content it can't reach). Also turn on <b>“Background graphics”</b> (or “Print backgrounds”) if the navy and gold print white.<br><br>
+      <b style="color:#B26A1F">If a physical printout still looks clipped at the edge:</b> double-check you're printing the saved PDF and not this page directly (see above). If it's still clipped, that's your printer's own hardware limit, not this file — every printer has a strip near the edge it physically cannot print into, and it varies by model. This tool's margin is set to clear that strip for the vast majority of printers. If you want truly edge-to-edge output, check the print dialog for a <b>“Borderless”</b> or <b>“Full bleed”</b> paper option — only your printer's own driver can turn that on.<br><br>
       The church logo is already built in. You only need the <b>Logo</b> box under “Church info” if you ever want to swap it.
     </div>
   </aside>
