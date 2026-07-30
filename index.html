@@ -337,20 +337,22 @@
     .preview[data-preview-mode="prayer"] .prayer-sheet {
       width: auto; height: auto; overflow: visible; display: block;
     }
-    /* Screen-only: shade in the paper's margin around the printable
-       content so this preview doesn't read as edge-to-edge — a browser
-       has no way to draw @page margin on screen otherwise, since it's
-       a print-time-only concept, and content sitting flush against the
-       window edge here previously looked like a missing margin even
-       though the real print always had one. Padding eats into these
-       elements' own fixed width, so this is a close screen approximation
-       of the true printed proportions, not a pixel-exact one. */
+    /* Screen-only: a box-shadow "halo" simulates the paper's margin around
+       the printable content, so this preview doesn't read as edge-to-edge
+       — a browser has no way to draw @page margin on screen otherwise,
+       since it's a print-time-only concept, and content sitting flush
+       against the window edge here previously looked like a missing
+       margin even though the real print always had one. box-shadow (NOT
+       padding, which was tried first) paints outside the element's own
+       box rather than inside it, so it can't change what getBoundingClientRect()
+       measures — padding did, which meant the fit-check (measuring this
+       same element) read taller while this tab happened to be open than
+       it actually prints, a false-positive overflow risk. */
     .preview[data-preview-mode="sheet"] .print-page,
     .preview[data-preview-mode="prayer"] .prayer-page {
-      background: #DCE3EC; padding: 20px; border-radius: 4px;
+      box-shadow: 0 0 0 20px #DCE3EC; border-radius: 4px; margin: 20px auto;
     }
-    .preview[data-preview-mode="sheet"] .half-sheet,
-    .preview[data-preview-mode="prayer"] .pb-body { background: var(--white); }
+    .preview[data-preview-mode="sheet"] .half-sheet { background: var(--white); }
   }
 
   /* ============================================================
@@ -613,8 +615,8 @@
   .hs-footer { margin-top: 4px; background: var(--navy); color: rgba(255,255,255,.92); font-size: 12px; text-align: center; padding: 6px 20px; margin-left: -20px; margin-right: -20px; }
 
   /* ============================================================
-     PRAYER BULLETIN — a separate document from the half-sheet/phone
-     bulletin above (see prayerBulletinHTML() and printMode("prayer")
+     PRAYER BULLETIN — a separate document from the half-sheet bulletin
+     above (see prayerBulletinHTML() and printMode("prayer")
      in the script). One full portrait page, not mirrored/halved —
      there's no cut-in-half workflow for this one. Hidden on screen;
      only shown for Download PDF — Prayer Bulletin. Styled to match the rest
@@ -1038,7 +1040,7 @@
       <div class="bulletin" id="bulletin"><!-- rendered by JS --></div>
       <!-- two half-sheets per page, mirrored, cut in half after printing.
            Hidden on screen except in Half-Sheet Preview mode (see the
-           SHARED VIEW... actually see the PREVIEW TOGGLE CSS below). -->
+           PREVIEW TOGGLE CSS above). -->
       <div class="print-sheets" id="printSheets"><!-- rendered by JS --></div>
       <!-- the separate one-page Prayer Bulletin document — same idea -->
       <div class="prayer-sheet" id="prayerSheet"><!-- rendered by JS --></div>
@@ -1122,8 +1124,8 @@ const DEFAULTS = {
   ],
   customNotes: [],   // freeform extra sections — {title, body} — always shown right after Announcements
 
-  // PRAYER BULLETIN — a separate document from the half-sheet/phone
-  // bulletin above (see printMode("prayer")). Reuses missionary, shutIn,
+  // PRAYER BULLETIN — a separate document from the half-sheet bulletin
+  // above (see printMode("prayer")). Reuses missionary, shutIn,
   // comingSoon, fixed service times, church info (incl. the new address
   // field), and logo/theme from the state above; flat top-level keys
   // below (prefixed prayer*) are specific to this one, kept flat rather
@@ -1900,7 +1902,7 @@ window.addEventListener("afterprint", ()=>{
 
 function startFresh(){
   // keep church info + fixed schedule + recurring announcements; clear the week-specific stuff
-  if (!confirm("Start next week's bulletin?\n\nThis clears the date, sermon, optional order-of-service items, this-week events (except ones marked \"Recurring\"), attendance, birthdays, anniversaries, and people — but keeps your church info, service times, and announcements.")) return;
+  if (!confirm("Start next week's bulletin?\n\nThis clears the date, sermon, optional order-of-service items, this-week events (except ones marked \"Recurring\"), attendance, birthdays, anniversaries, people, and the Prayer Bulletin's Today/Church Family — but keeps your church info, service times, and announcements.")) return;
   state.date = "";
   state.morning.hymns = "";
   state.morning.sermonTitle = "";
@@ -1914,6 +1916,8 @@ function startFresh(){
   state.birthdays = [];
   state.anniversaries = [];
   state.attendance = [];
+  state.prayerToday = "";
+  state.churchFamily = [];
   redrawAll(); saveNow(true);
   note("Ready for next week. Fill in the date and sermon to begin.", "ok");
 }
