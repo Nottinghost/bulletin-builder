@@ -347,6 +347,16 @@
   .preview-page-label:not(:first-child) { margin-top: 24px; }
 
   @media screen {
+    /* Match the @media print font fallback (see PRINT below) so these
+       two tabs stay honestly WYSIWYG — showing the nicer web fonts here
+       while print quietly falls back to system fonts would recreate the
+       exact "preview doesn't match what printed" gap this whole toggle
+       exists to close. */
+    .preview[data-preview-mode="sheet"],
+    .preview[data-preview-mode="prayer"] {
+      --font-display: Georgia, 'Times New Roman', serif;
+      --font-body: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    }
     .preview[data-preview-mode="sheet"] .bulletin,
     .preview[data-preview-mode="prayer"] .bulletin { display: none; }
     .preview[data-preview-mode="sheet"] .print-sheets,
@@ -681,6 +691,24 @@
      in <head>.
      ============================================================ */
   @media print {
+    /* Fall back to fonts already built into the OS instead of the
+       downloaded Google Fonts, ONLY for print. Reported cause of a real
+       garbled-text bug (stray extra glyphs mid-word, e.g. "Durso" ->
+       "Durslo") that only happened on one specific computer, only when
+       printing — never on screen, never on a different machine printing
+       the exact same page. That pattern points at that machine's print
+       pipeline mishandling the downloaded web font's glyph tables while
+       rasterizing it for the printer/PDF, not a bug in this page — so
+       the fix is to hand print a font that never needs downloading,
+       embedding, or subsetting in the first place. Georgia is already
+       this design's documented fallback for --font-display (just rarely
+       reached, since Playfair Display normally loads fine on screen).
+       :root here beats the :root above it for print because it's later
+       in the stylesheet — see the THEME comment up top if that changes. */
+    :root {
+      --font-display: Georgia, 'Times New Roman', serif;
+      --font-body: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    }
     body { background: #fff; }
     .app { display: block; height: auto; }
     .editor, .toolbar, .editor-head, .preview-toggle, .preview-page-label { display: none !important; }
