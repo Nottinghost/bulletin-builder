@@ -128,6 +128,16 @@
     color: var(--ink);
     background: var(--edit-bg);
     line-height: 1.5;
+    /* Printing/PDF-export has shown stray extra glyphs inserted mid-word
+       (e.g. "Durso" -> "Durslo", "please" -> "pleaise") in text that's
+       correct in the source and renders fine on screen — a font ligature/
+       substitution table getting mishandled when the print pipeline
+       subsets and embeds the font is the most likely cause, since this
+       only ever shows up in the exported/printed output, never while
+       editing. Disabling ligatures and contextual alternates removes the
+       most likely trigger without any visible difference for this font. */
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "clig" 0, "calt" 0;
   }
 
   /* ============================================================
